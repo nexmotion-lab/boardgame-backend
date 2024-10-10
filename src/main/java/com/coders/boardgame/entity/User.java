@@ -19,12 +19,6 @@ public class User {
     private String school;
 
     @Column(nullable = false)
-    private int grade;
-
-    @Column(name = "class", nullable = false)
-    private int userClass;
-
-    @Column(nullable = false)
     private String name;
 
     @Column(nullable = false)
@@ -32,8 +26,6 @@ public class User {
 
     public User(UserDto userDto) {
         this.school = userDto.getSchool();
-        this.grade = userDto.getGrade();
-        this.userClass = userDto.getUserClass();
         this.name = userDto.getName();
         this.gender = userDto.getGender();
     }
