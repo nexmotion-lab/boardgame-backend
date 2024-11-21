@@ -6,7 +6,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
+@Table(name = "users")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,9 +27,14 @@ public class User {
     @Column(nullable = false)
     private int gender;
 
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
     public User(UserDto userDto) {
+
         this.school = userDto.getSchool();
         this.name = userDto.getName();
         this.gender = userDto.getGender();
+        this.createdAt = LocalDateTime.now();
     }
 }

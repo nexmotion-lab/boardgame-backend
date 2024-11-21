@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -19,8 +19,8 @@ public class UserController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> signUp(@RequestBody @Valid UserDto userDto) {
-        userService.signUp(userDto);
+        String sessionId = userService.signUp(userDto);
 
-        return ResponseEntity.ok("회원가입 성공");
+        return ResponseEntity.ok(sessionId);
     }
 }
