@@ -1,5 +1,7 @@
-package com.coders.boardgame.service;
+package com.coders.boardgame.domain.habitsurvey.service;
 
+import com.coders.boardgame.domain.habitsurvey.entity.HabitSurvey;
+import com.coders.boardgame.domain.habitsurvey.repository.HabitSurveyRepository;
 import com.coders.boardgame.dto.SurveySelectedOptionDto;
 import com.coders.boardgame.entity.*;
 import com.coders.boardgame.repository.HabitSurveyRepository;

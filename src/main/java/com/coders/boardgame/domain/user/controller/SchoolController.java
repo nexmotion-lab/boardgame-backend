@@ -1,7 +1,7 @@
-package com.coders.boardgame.controller;
+package com.coders.boardgame.domain.user.controller;
 
-import com.coders.boardgame.dto.SchoolInfoDto;
-import com.coders.boardgame.service.SchoolService;
+import com.coders.boardgame.domain.user.dto.SchoolInfoDto;
+import com.coders.boardgame.domain.user.service.SchoolService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

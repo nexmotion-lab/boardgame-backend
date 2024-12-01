@@ -1,6 +1,6 @@
-package com.coders.boardgame.entity;
+package com.coders.boardgame.domain.user.entity;
 
-import com.coders.boardgame.dto.UserDto;
+import com.coders.boardgame.domain.user.dto.UserDto;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

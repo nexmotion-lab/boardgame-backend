@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class PlayerDto {
     private Long userId;
     private String name;
-    private int score;
+    private byte score;
     private Integer usedTime = 0;
     private int puzzlePiece = 0;
     private boolean isSpeaker;

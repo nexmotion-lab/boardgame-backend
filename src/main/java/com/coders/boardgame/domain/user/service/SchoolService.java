@@ -1,11 +1,10 @@
-package com.coders.boardgame.service;
+package com.coders.boardgame.domain.user.service;
 
-import com.coders.boardgame.dto.SchoolInfoDto;
+import com.coders.boardgame.domain.user.dto.SchoolInfoDto;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;

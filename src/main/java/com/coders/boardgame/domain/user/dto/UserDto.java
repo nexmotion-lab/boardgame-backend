@@ -1,4 +1,4 @@
-package com.coders.boardgame.dto;
+package com.coders.boardgame.domain.user.dto;
 
 import lombok.Data;
 
