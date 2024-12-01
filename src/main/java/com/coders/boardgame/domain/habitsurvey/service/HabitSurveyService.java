@@ -1,9 +1,8 @@
-package com.coders.boardgame.service;
+package com.coders.boardgame.domain.habitsurvey.service;
 
-import com.coders.boardgame.entity.HabitSurvey;
-import com.coders.boardgame.repository.HabitSurveyRepository;
+import com.coders.boardgame.domain.habitsurvey.entity.HabitSurvey;
+import com.coders.boardgame.domain.habitsurvey.repository.HabitSurveyRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
