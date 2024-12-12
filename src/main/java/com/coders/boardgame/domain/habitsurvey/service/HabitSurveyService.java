@@ -58,6 +58,5 @@ public class HabitSurveyService {
         }
 
         habitSurveySelectedOptionRepository.saveAll(selectedOptionToSave);
-
     }
 }
