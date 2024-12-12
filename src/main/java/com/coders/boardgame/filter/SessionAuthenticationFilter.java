@@ -1,5 +1,6 @@
 package com.coders.boardgame.filter;
 
+import com.coders.boardgame.exception.auth.CustomSessionAuthenticationException;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,8 +39,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY) == null) {
             log.warn("Unauthenticated request to '{}'. Returning 401.", requestURI);
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Session is invalid or expired");
-            return;
+            throw new CustomSessionAuthenticationException("세션이 만료되었거나 존재하지 않습니다.");
         }
 
 
@@ -51,8 +51,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
         Long userId = (Long) session.getAttribute("userId");
         if (userId == null) {
             log.warn("요청 URI '{}'에서 세션에 userId가 없습니다. 401 응답을 반환합니다.", requestURI);
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "세션에 사용자 ID가 없습니다.");
-            return;
+            throw new CustomSessionAuthenticationException("사용자 ID가 없습니다.");
         }
 
         log.info("Authenticated request to '{}'. Proceeding with filter chain.", requestURI);

@@ -13,7 +13,8 @@ public class CookieConfig {
         return servletContext -> {
             Cookie cookie = new Cookie("JSESSIONID", null);
             cookie.setHttpOnly(true);
-            cookie.setSecure(false); // HTTP 환경
+//            cookie.setSecure(false); // HTTPS 환경
+            cookie.setSecure(true); // HTTPS 환경
             cookie.setPath("/");
             cookie.setAttribute("SameSite", "Lax");
         };
