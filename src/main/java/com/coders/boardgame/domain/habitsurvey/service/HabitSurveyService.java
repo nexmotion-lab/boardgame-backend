@@ -1,15 +1,18 @@
 package com.coders.boardgame.domain.habitsurvey.service;
 
 import com.coders.boardgame.domain.habitsurvey.entity.HabitSurvey;
+import com.coders.boardgame.domain.habitsurvey.entity.HabitSurveyResult;
+import com.coders.boardgame.domain.habitsurvey.entity.HabitSurveySelectedOption;
+import com.coders.boardgame.domain.habitsurvey.entity.SelectedOptionId;
 import com.coders.boardgame.domain.habitsurvey.repository.HabitSurveyRepository;
 import com.coders.boardgame.domain.user.entity.User;
+import com.coders.boardgame.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import com.coders.boardgame.dto.SurveySelectedOptionDto;
-import com.coders.boardgame.entity.*;
-import com.coders.boardgame.repository.HabitSurveyResultRepository;
-import com.coders.boardgame.repository.HabitSurveySelectedOptionRepository;
+import com.coders.boardgame.domain.habitsurvey.dto.SurveySelectedOptionDto;
+import com.coders.boardgame.domain.habitsurvey.repository.HabitSurveyResultRepository;
+import com.coders.boardgame.domain.habitsurvey.repository.HabitSurveySelectedOptionRepository;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -26,7 +29,7 @@ public class HabitSurveyService {
     private final UserRepository userRepository;
 
     public List<HabitSurvey> getAllSurveys() {
-        return habitSurveyRepository.findAll(); // 모든 데이터 조회
+        return habitSurveyRepository.findAll();
     }
 
     public void saveSurveyResult(Long userId, List<SurveySelectedOptionDto> selectedOptions) {
