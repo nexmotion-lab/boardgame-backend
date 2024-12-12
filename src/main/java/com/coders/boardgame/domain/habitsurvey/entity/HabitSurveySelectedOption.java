@@ -1,10 +1,9 @@
-package com.coders.boardgame.entity;
+package com.coders.boardgame.domain.habitsurvey.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
 
 @Entity
 @Table(name = "habit_survey_selected_options")

@@ -1,4 +1,4 @@
-package com.coders.boardgame.entity;
+package com.coders.boardgame.domain.habitsurvey.entity;
 
 import jakarta.persistence.Embeddable;
 import lombok.EqualsAndHashCode;

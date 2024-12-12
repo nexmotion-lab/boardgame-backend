@@ -2,7 +2,7 @@ package com.coders.boardgame.domain.habitsurvey.controller;
 
 import com.coders.boardgame.domain.habitsurvey.entity.HabitSurvey;
 import com.coders.boardgame.domain.habitsurvey.service.HabitSurveyService;
-import com.coders.boardgame.dto.SurveySelectedOptionDto;
+import com.coders.boardgame.domain.habitsurvey.dto.SurveySelectedOptionDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;

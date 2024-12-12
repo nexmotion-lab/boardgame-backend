@@ -1,12 +1,11 @@
-package com.coders.boardgame.service;
+package com.coders.boardgame.domain.game.service;
 
-import com.coders.boardgame.dto.GameRoomDto;
-import com.coders.boardgame.dto.PlayerDto;
-import com.coders.boardgame.dto.UserDto;
-import com.coders.boardgame.dto.VoteResultDto;
-import com.coders.boardgame.entity.User;
+import com.coders.boardgame.domain.game.dto.GameRoomDto;
+import com.coders.boardgame.domain.game.dto.PlayerDto;
+import com.coders.boardgame.domain.game.dto.VoteResultDto;
+import com.coders.boardgame.domain.user.entity.User;
+import com.coders.boardgame.domain.user.repository.UserRepository;
 import com.coders.boardgame.exception.GameRoomException;
-import com.coders.boardgame.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

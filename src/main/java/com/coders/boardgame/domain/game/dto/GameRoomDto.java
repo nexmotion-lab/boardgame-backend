@@ -1,4 +1,4 @@
-package com.coders.boardgame.dto;
+package com.coders.boardgame.domain.game.dto;
 
 import lombok.Builder;
 import lombok.Data;

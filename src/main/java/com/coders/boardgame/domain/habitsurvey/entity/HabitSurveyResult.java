@@ -1,5 +1,6 @@
-package com.coders.boardgame.entity;
+package com.coders.boardgame.domain.habitsurvey.entity;
 
+import com.coders.boardgame.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 

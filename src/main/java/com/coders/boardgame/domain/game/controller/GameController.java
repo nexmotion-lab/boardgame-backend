@@ -1,10 +1,10 @@
-package com.coders.boardgame.controller;
+package com.coders.boardgame.domain.game.controller;
 
-import com.coders.boardgame.dto.GameRoomDto;
-import com.coders.boardgame.dto.PlayerDto;
-import com.coders.boardgame.dto.VoteResultDto;
+import com.coders.boardgame.domain.game.dto.GameRoomDto;
+import com.coders.boardgame.domain.game.dto.PlayerDto;
+import com.coders.boardgame.domain.game.dto.VoteResultDto;
 import com.coders.boardgame.exception.GameRoomException;
-import com.coders.boardgame.service.GameService;
+import com.coders.boardgame.domain.game.service.GameService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
