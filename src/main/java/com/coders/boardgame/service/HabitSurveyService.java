@@ -23,7 +23,7 @@ public class HabitSurveyService {
     private final UserRepository userRepository;
 
     public List<HabitSurvey> getAllSurveys() {
-        return habitSurveyRepository.findAll(); // 모든 데이터 조회
+        return habitSurveyRepository.findAll();
     }
 
     public void saveSurveyResult(Long userId, List<SurveySelectedOptionDto> selectedOptions) {
@@ -52,6 +52,5 @@ public class HabitSurveyService {
         }
 
         habitSurveySelectedOptionRepository.saveAll(selectedOptionToSave);
-
     }
 }
