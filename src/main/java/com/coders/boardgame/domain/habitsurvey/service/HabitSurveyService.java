@@ -2,14 +2,14 @@ package com.coders.boardgame.domain.habitsurvey.service;
 
 import com.coders.boardgame.domain.habitsurvey.entity.HabitSurvey;
 import com.coders.boardgame.domain.habitsurvey.repository.HabitSurveyRepository;
-import com.coders.boardgame.dto.SurveySelectedOptionDto;
-import com.coders.boardgame.entity.*;
-import com.coders.boardgame.repository.HabitSurveyRepository;
-import com.coders.boardgame.repository.HabitSurveyResultRepository;
-import com.coders.boardgame.repository.HabitSurveySelectedOptionRepository;
-import com.coders.boardgame.repository.UserRepository;
+import com.coders.boardgame.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import com.coders.boardgame.dto.SurveySelectedOptionDto;
+import com.coders.boardgame.entity.*;
+import com.coders.boardgame.repository.HabitSurveyResultRepository;
+import com.coders.boardgame.repository.HabitSurveySelectedOptionRepository;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -18,6 +18,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class HabitSurveyService {
+
 
     private final HabitSurveyRepository habitSurveyRepository;
     private final HabitSurveyResultRepository habitSurveyResultRepository;
