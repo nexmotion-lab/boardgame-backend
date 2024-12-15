@@ -22,7 +22,7 @@ public class HabitSurveyResult {
     private User user;
 
     @Column(name = "total_score", nullable = false)
-    private int totalScore;
+    private Byte totalScore;
 
     @Column(name = "survey_date", nullable = false)
     private LocalDateTime surveyDate;
