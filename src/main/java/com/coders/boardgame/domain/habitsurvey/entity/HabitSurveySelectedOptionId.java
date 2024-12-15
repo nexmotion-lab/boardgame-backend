@@ -7,13 +7,13 @@ import java.io.Serializable;
 
 @Embeddable
 @EqualsAndHashCode
-public class SelectedOptionId implements Serializable {
+public class HabitSurveySelectedOptionId implements Serializable {
     private Integer surveyId;
     private Long surveyResultId;
 
-    public SelectedOptionId() {}
+    public HabitSurveySelectedOptionId() {}
 
-    public SelectedOptionId(Integer surveyId, Long surveyResultId) {
+    public HabitSurveySelectedOptionId(Integer surveyId, Long surveyResultId) {
         this.surveyId = surveyId;
         this.surveyResultId = surveyResultId;
     }

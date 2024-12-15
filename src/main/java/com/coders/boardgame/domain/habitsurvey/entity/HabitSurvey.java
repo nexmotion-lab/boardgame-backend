@@ -13,9 +13,9 @@ import lombok.NoArgsConstructor;
 public class HabitSurvey {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // AUTO_INCREMENT 설정
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String content; // content 컬럼과 매핑
-
+    @Column(nullable = false)
+    private String content;
 }

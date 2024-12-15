@@ -1,16 +1,17 @@
 package com.coders.boardgame.domain.habitsurvey.service;
 
+import com.coders.boardgame.domain.habitsurvey.dto.HabitSurveyResultDto;
 import com.coders.boardgame.domain.habitsurvey.entity.HabitSurvey;
 import com.coders.boardgame.domain.habitsurvey.entity.HabitSurveyResult;
 import com.coders.boardgame.domain.habitsurvey.entity.HabitSurveySelectedOption;
-import com.coders.boardgame.domain.habitsurvey.entity.SelectedOptionId;
+import com.coders.boardgame.domain.habitsurvey.entity.HabitSurveySelectedOptionId;
 import com.coders.boardgame.domain.habitsurvey.repository.HabitSurveyRepository;
 import com.coders.boardgame.domain.user.entity.User;
 import com.coders.boardgame.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import com.coders.boardgame.domain.habitsurvey.dto.SurveySelectedOptionDto;
+import com.coders.boardgame.domain.habitsurvey.dto.HabitSurveySelectedOptionDto;
 import com.coders.boardgame.domain.habitsurvey.repository.HabitSurveyResultRepository;
 import com.coders.boardgame.domain.habitsurvey.repository.HabitSurveySelectedOptionRepository;
 
@@ -32,25 +33,26 @@ public class HabitSurveyService {
         return habitSurveyRepository.findAll();
     }
 
-    public void saveSurveyResult(Long userId, List<SurveySelectedOptionDto> selectedOptions) {
+    public void saveSurveyResult(Long userId, HabitSurveyResultDto resultDto) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾지 못했습니다."));
 
-        HabitSurveyResult surveyResult = HabitSurveyResult.builder()
-                        .user(user)
-                        .surveyDate(LocalDateTime.now())
+        HabitSurveyResult result = HabitSurveyResult.builder()
+                .user(user)
+                .totalScore(resultDto.getTotalScore())
+                .surveyDate(LocalDateTime.now())
                 .build();
-        habitSurveyResultRepository.save(surveyResult);
+        habitSurveyResultRepository.save(result);
 
         List<HabitSurveySelectedOption> selectedOptionToSave = new ArrayList<>();
-        for(SurveySelectedOptionDto option : selectedOptions) {
+        for(HabitSurveySelectedOptionDto option : resultDto.getSelectedOptions()) {
             HabitSurvey habitSurvey = habitSurveyRepository.findById(option.getSurveyId())
                     .orElseThrow(() -> new RuntimeException("질문을 찾을 수 없습니다."));
 
             HabitSurveySelectedOption selectedOption = HabitSurveySelectedOption.builder()
-                    .id(new SelectedOptionId(habitSurvey.getId(), surveyResult.getId()))
+                    .id(new HabitSurveySelectedOptionId(habitSurvey.getId(), result.getId()))
                     .survey(habitSurvey)
-                    .surveyResult(surveyResult)
+                    .surveyResult(result)
                     .score(option.getScore())
                     .build();
 

@@ -13,18 +13,18 @@ import lombok.NoArgsConstructor;
 public class HabitSurveySelectedOption {
 
     @EmbeddedId
-    private SelectedOptionId id;
+    private HabitSurveySelectedOptionId id;
 
     @ManyToOne
     @MapsId("surveyId")
-    @JoinColumn(name = "survey_id")
+    @JoinColumn(name = "survey_id", nullable = false)
     private HabitSurvey survey;
 
     @ManyToOne
     @MapsId("surveyResultId")
-    @JoinColumn(name = "survey_result_id")
+    @JoinColumn(name = "survey_result_id", nullable = false)
     private HabitSurveyResult surveyResult;
 
-    @Column
+    @Column(nullable = false)
     private int score;
 }

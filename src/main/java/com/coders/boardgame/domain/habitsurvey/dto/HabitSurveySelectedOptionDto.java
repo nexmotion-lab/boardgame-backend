@@ -3,7 +3,7 @@ package com.coders.boardgame.domain.habitsurvey.dto;
 import lombok.Data;
 
 @Data
-public class SurveySelectedOptionDto {
+public class HabitSurveySelectedOptionDto {
 
     private Integer surveyId;
     private Long surveyResultId;
