@@ -3,8 +3,8 @@ package com.coders.boardgame.domain.habitsurvey.controller;
 import com.coders.boardgame.domain.habitsurvey.dto.HabitSurveyResultDto;
 import com.coders.boardgame.domain.habitsurvey.entity.HabitSurvey;
 import com.coders.boardgame.domain.habitsurvey.service.HabitSurveyService;
-import com.coders.boardgame.exception.auth.CustomSessionAuthenticationException;
-import jakarta.servlet.http.HttpSession;
+import com.coders.boardgame.domain.user.service.SessionService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +22,7 @@ import java.util.List;
 public class HabitSurveyController {
 
     private final HabitSurveyService habitSurveyService;
+    private final SessionService sessionService;
 
     @GetMapping
     public ResponseEntity<List<HabitSurvey>> getAllSurveys() {
@@ -30,13 +31,8 @@ public class HabitSurveyController {
     }
 
     @PostMapping("/results")
-    public ResponseEntity<Void> saveSurveyResult(@RequestBody HabitSurveyResultDto habitSurveyResult, HttpSession session) {
-        Long userId = (Long) session.getAttribute("userId");
-
-        if (userId == null) {
-            log.warn("사용자 ID가 없습니다. userId: " + userId);
-            throw new CustomSessionAuthenticationException("사용자 ID가 없습니다.");
-        }
+    public ResponseEntity<Void> saveSurveyResult(@RequestBody HabitSurveyResultDto habitSurveyResult, HttpServletRequest request) {
+        Long userId = sessionService.getUserIdFromSession(request);
 
         habitSurveyService.saveSurveyResult(userId, habitSurveyResult);
         return ResponseEntity.ok().build();
