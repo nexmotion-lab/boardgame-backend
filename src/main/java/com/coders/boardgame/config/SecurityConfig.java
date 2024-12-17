@@ -33,8 +33,8 @@ public class SecurityConfig {
 
 
         // 예외 경로를 배열로 정의
-        String[] permitted = new String[]{
-                "/api/users/signup", "/api/schools/search"
+        String[] permitted = {
+                "/api/users/signup","/api/users/session", "/api/schools/search"
         };
 
         http
