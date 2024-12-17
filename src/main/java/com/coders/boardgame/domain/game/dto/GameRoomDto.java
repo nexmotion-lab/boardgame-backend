@@ -10,9 +10,10 @@ import java.util.List;
 @Builder
 public class GameRoomDto {
     private String roomId;
+    private String roomName;
+    private int headCount;
     private List<PlayerDto> players = new ArrayList<>();
     private List<String> disagreePlayers = new ArrayList<>();
-    private int headCount;
     private int currentTurn = 0;
     private int count = 0;
     private int agreeCount = 0;

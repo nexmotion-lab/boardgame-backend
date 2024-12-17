@@ -18,10 +18,13 @@ public class HabitSurveyResult {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "survey_date")
+    @Column(name = "total_score", nullable = false)
+    private Byte totalScore;
+
+    @Column(name = "survey_date", nullable = false)
     private LocalDateTime surveyDate;
 
 }

@@ -3,6 +3,7 @@ package com.coders.boardgame.domain.game.service;
 import com.coders.boardgame.domain.game.dto.GameRoomDto;
 import com.coders.boardgame.domain.game.dto.PlayerDto;
 import com.coders.boardgame.domain.game.dto.VoteResultDto;
+import com.coders.boardgame.domain.habitsurvey.repository.HabitSurveyResultRepository;
 import com.coders.boardgame.domain.user.entity.User;
 import com.coders.boardgame.domain.user.repository.UserRepository;
 import com.coders.boardgame.exception.GameRoomException;
@@ -21,9 +22,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GameService {
 
     private final UserRepository userRepository;
+    private final HabitSurveyResultRepository habitSurveyResultRepository;
     private final Map<String, GameRoomDto> gameRooms = new ConcurrentHashMap<>();
 
-    public String generateRoomId(int length) {
+    public String generateRoomId() {
         int attempts = 0;
         int maxAttempts = 100;
 
@@ -32,31 +34,34 @@ public class GameService {
             if (attempts++ >= maxAttempts) {
                 throw new IllegalStateException("Room ID 생성에 실패했습니다.");
             }
-            roomId = UUID.randomUUID().toString().replace("-", "").substring(0, length);
+            roomId = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         } while (gameRooms.containsKey(roomId));
 
         return roomId;
     }
 
-    public GameRoomDto createGameRoom(Long userId, int headCount) {
+    public String createGameRoom(Long userId, GameRoomDto room) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
 
         PlayerDto createdUser = PlayerDto.builder()
                 .userId(userId)
                 .name(user.getName())
+                .score(habitSurveyResultRepository.findTotalScoreByUserId(userId))
                 .build();
 
-        String roomId = generateRoomId(8);
-        GameRoomDto room = GameRoomDto.builder()
+        String roomId = generateRoomId();
+
+        GameRoomDto newRoom = GameRoomDto.builder()
                 .roomId(roomId)
-                .headCount(headCount)
+                .roomName(room.getRoomName())
+                .headCount(room.getHeadCount())
                 .players(new ArrayList<>(List.of(createdUser)))
                 .build();
 
-        gameRooms.put(roomId, room);
+        gameRooms.put(roomId, newRoom);
 
-        return room;
+        return roomId;
     }
 
     public GameRoomDto getGameRoom(String roomId) {
@@ -65,7 +70,10 @@ public class GameService {
 
     //fixme.
     //  나간 플레이어 반영, 이미 입장한 플레이어 중복 입장 불가 처리.
-    public void addPlayer(String roomId, PlayerDto player) {
+    public PlayerDto addPlayer(String roomId, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
+
         GameRoomDto room = gameRooms.get(roomId);
 
         if (room == null) {
@@ -78,8 +86,16 @@ public class GameService {
             throw new GameRoomException("인원이 꽉 찬 방입니다: " + roomId, HttpStatus.FORBIDDEN);
         }
 
+        PlayerDto player = PlayerDto.builder()
+                .userId(userId)
+                .name(user.getName())
+                .score(habitSurveyResultRepository.findTotalScoreByUserId(userId))
+                .build();
+
         room.getPlayers().add(player);
         log.info("플레이어 추가: " + player.getName() + " | 방 ID: " + roomId + " | 현재 플레이어 수: " + room.getPlayers().size());
+
+        return player;
     }
 
     public void submitUsedTime(String roomId, PlayerDto submittedPlayer) {
