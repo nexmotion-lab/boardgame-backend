@@ -7,5 +7,5 @@ import java.util.List;
 @Data
 public class HabitSurveyResultDto {
     private List<HabitSurveySelectedOptionDto> selectedOptions;
-    private int totalScore;
+    private Byte totalScore;
 }
