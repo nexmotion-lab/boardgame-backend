@@ -3,9 +3,14 @@ package com.coders.boardgame.domain.game.controller;
 import com.coders.boardgame.domain.game.dto.GameRoomDto;
 import com.coders.boardgame.domain.game.dto.PlayerDto;
 import com.coders.boardgame.domain.game.dto.VoteResultDto;
+import com.coders.boardgame.domain.user.service.SessionService;
 import com.coders.boardgame.exception.GameRoomException;
 import com.coders.boardgame.domain.game.service.GameService;
+import com.coders.boardgame.exception.auth.CustomSessionAuthenticationException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,26 +20,34 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/games/room")
 @RequiredArgsConstructor
+@Slf4j
 public class GameController {
 
     private final GameService gameService;
+    private final SessionService sessionService;
 
     @PostMapping
-    public ResponseEntity<GameRoomDto> createGameRoom(@RequestParam Long userId, @RequestParam int headCount) {
-        GameRoomDto room = gameService.createGameRoom(userId, headCount);
-        return ResponseEntity.ok(room);
+    public ResponseEntity<String> createGameRoom(@RequestBody GameRoomDto room, HttpServletRequest request) {
+        Long userId = sessionService.getUserIdFromSession(request);
+
+        String roomId = gameService.createGameRoom(userId, room);
+        log.info("방 생성 완료: " + roomId);
+        return ResponseEntity.ok(roomId);
     }
 
     @GetMapping("/{roomId}")
     public ResponseEntity<GameRoomDto> getGameRoom(@PathVariable String roomId) {
         GameRoomDto room = gameService.getGameRoom(roomId);
+        log.info(room.getPlayers().toString());
         return ResponseEntity.ok(room);
     }
 
     @PostMapping("/{roomId}/join")
-    public ResponseEntity<String> joinGameRoom(@PathVariable String roomId, @RequestBody PlayerDto player) {
+    public ResponseEntity<String> joinGameRoom(@PathVariable String roomId, HttpServletRequest request) {
+        Long userId = sessionService.getUserIdFromSession(request);
+
         try {
-            gameService.addPlayer(roomId, player);
+            PlayerDto player = gameService.addPlayer(roomId, userId);
             return ResponseEntity.ok("플레이어 " + player.getName() + "가 게임방(" + roomId + ")에 참여했습니다.");
         } catch (GameRoomException e) {
             return ResponseEntity.status(e.getStatus()).body(e.getMessage());
