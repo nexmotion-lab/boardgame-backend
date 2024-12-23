@@ -4,6 +4,7 @@ import lombok.*;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
@@ -21,5 +22,5 @@ public class GameRoomDto {
     private int currentTurn; // 현재 턴을 수행중인 플레이어의 순번
     private int totalPuzzlePieces; // 총 퍼즐 조각 개수
     private int currentPuzzlePieces; // 현재 획득한 퍼즐 조각 개수
-    private boolean isGameStarted; // 게임 시작 여부
+    private AtomicBoolean isGameStarted = new AtomicBoolean(false); // 게임 시작 여부
 }

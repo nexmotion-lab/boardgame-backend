@@ -2,7 +2,6 @@ package com.coders.boardgame.domain.game.controller;
 
 import com.coders.boardgame.domain.game.dto.*;
 import com.coders.boardgame.domain.game.service.GameRoomService;
-import com.coders.boardgame.domain.user.dto.UserDto;
 import com.coders.boardgame.domain.user.service.SessionService;
 import com.coders.boardgame.exception.GameRoomException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.io.IOException;
 
 @Slf4j
 @RestController
@@ -73,7 +74,6 @@ public class GameRoomController {
 
     /**
      * 방 나가기
-     *
      * @param roomId 방 id
      * @param request request 객체
      * @return ResponseEntity<String>
@@ -96,11 +96,23 @@ public class GameRoomController {
      * 방과 SSE 연결
      * @param roomId 방 id
      * @param request request 객체
-     * @return
+     * @return emitter 객체
      */
     @GetMapping(value = "/connect/{roomId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter connectToRoom(@PathVariable String roomId, HttpServletRequest request){
         Long userId = sessionService.getUserIdFromSession(request);
-        return gameRoomService.connectToRoom(roomId, userId);
+        SseEmitter emitter = gameRoomService.connectToRoom(roomId, userId);
+
+        // 클라이언트에 초기 연결 상태 전송
+        try{
+            emitter.send(SseEmitter.event()
+                    .name("connected")
+                    .data("sse 연결이 설정되었습니다.")
+            );
+        } catch (IOException e){
+            log.error("SSE 초기 연결 실패: roomId={}, userId={}, error={}", roomId, userId, e.getMessage());
+            emitter.completeWithError(e);
+        }
+        return emitter;
     }
 }

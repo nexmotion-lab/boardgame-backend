@@ -26,32 +26,12 @@ public class GameController {
     private final GameService gameService;
     private final SessionService sessionService;
 
-    @PostMapping("/{roomId}/submit")
-    public ResponseEntity<Void> submitUsedTime(@PathVariable String roomId, @RequestBody PlayerDto player) {
-        gameService.submitUsedTime(roomId, player);
+    @GetMapping("/{roomId}/start")
+    public ResponseEntity<PlayerDto> startGame(@PathVariable String roomId, HttpServletRequest request) {
+
+        Long userId = sessionService.getUserIdFromSession(request);
+        gameService.startGame(roomId, userId);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/{roomId}/start")
-    public ResponseEntity<PlayerDto> startGame(@PathVariable String roomId) {
-        PlayerDto currentPlayer = gameService.startGame(roomId);
-        return ResponseEntity.ok(currentPlayer);
-    }
-
-    @PostMapping("/{roomId}/vote")
-    public ResponseEntity<VoteResultDto> vote(@PathVariable String roomId, @RequestParam Long userId, @RequestParam boolean isAgreed) {
-        VoteResultDto result = gameService.vote(roomId, userId, isAgreed);
-        return ResponseEntity.ok(result);
-    }
-
-    @GetMapping("/{roomId}/ranking")
-    public ResponseEntity<List<PlayerDto>> calculateRankings(@PathVariable String roomId) {
-        List<PlayerDto> result = gameService.calculateRankings(roomId);
-
-        if (result.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
-
-        return ResponseEntity.ok(result);
-    }
 }
