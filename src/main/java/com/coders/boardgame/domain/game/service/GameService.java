@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -21,82 +22,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class GameService {
 
+
     private final UserRepository userRepository;
     private final HabitSurveyResultRepository habitSurveyResultRepository;
-    private final Map<String, GameRoomDto> gameRooms = new ConcurrentHashMap<>();
-
-    public String generateRoomId() {
-        int attempts = 0;
-        int maxAttempts = 100;
-
-        String roomId;
-        do {
-            if (attempts++ >= maxAttempts) {
-                throw new IllegalStateException("Room ID 생성에 실패했습니다.");
-            }
-            roomId = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
-        } while (gameRooms.containsKey(roomId));
-
-        return roomId;
-    }
-
-    public String createGameRoom(Long userId, GameRoomDto room) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
-
-        PlayerDto createdUser = PlayerDto.builder()
-                .userId(userId)
-                .name(user.getName())
-                .score(habitSurveyResultRepository.findTotalScoreByUserId(userId))
-                .build();
-
-        String roomId = generateRoomId();
-
-        GameRoomDto newRoom = GameRoomDto.builder()
-                .roomId(roomId)
-                .roomName(room.getRoomName())
-                .headCount(room.getHeadCount())
-                .players(new ArrayList<>(List.of(createdUser)))
-                .build();
-
-        gameRooms.put(roomId, newRoom);
-
-        return roomId;
-    }
-
-    public GameRoomDto getGameRoom(String roomId) {
-        return gameRooms.get(roomId);
-    }
-
-    //fixme.
-    //  나간 플레이어 반영, 이미 입장한 플레이어 중복 입장 불가 처리.
-    public PlayerDto addPlayer(String roomId, Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
-
-        GameRoomDto room = gameRooms.get(roomId);
-
-        if (room == null) {
-            log.info("방이 존재하지 않습니다: " + roomId);
-            throw new GameRoomException("방이 존재하지 않습니다: " + roomId, HttpStatus.NOT_FOUND);
-        }
-
-        if (room.getPlayers().size() >= room.getHeadCount()) {
-            log.info("인원이 꽉 찬 방입니다: " + roomId);
-            throw new GameRoomException("인원이 꽉 찬 방입니다: " + roomId, HttpStatus.FORBIDDEN);
-        }
-
-        PlayerDto player = PlayerDto.builder()
-                .userId(userId)
-                .name(user.getName())
-                .score(habitSurveyResultRepository.findTotalScoreByUserId(userId))
-                .build();
-
-        room.getPlayers().add(player);
-        log.info("플레이어 추가: " + player.getName() + " | 방 ID: " + roomId + " | 현재 플레이어 수: " + room.getPlayers().size());
-
-        return player;
-    }
 
     public void submitUsedTime(String roomId, PlayerDto submittedPlayer) {
         GameRoomDto room = gameRooms.get(roomId);
