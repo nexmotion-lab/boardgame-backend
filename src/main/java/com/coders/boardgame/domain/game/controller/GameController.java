@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/games/room")
+@RequestMapping("/api/games")
 @RequiredArgsConstructor
 @Slf4j
 public class GameController {
@@ -26,7 +26,13 @@ public class GameController {
     private final GameService gameService;
     private final SessionService sessionService;
 
-    @GetMapping("/{roomId}/start")
+    /**
+     * 게임 시작 API
+     * @param roomId
+     * @param request
+     * @return
+     */
+    @PostMapping("/{roomId}/state")
     public ResponseEntity<PlayerDto> startGame(@PathVariable String roomId, HttpServletRequest request) {
 
         Long userId = sessionService.getUserIdFromSession(request);

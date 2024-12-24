@@ -1,6 +1,7 @@
 package com.coders.boardgame.domain.game.service;
 
 import com.coders.boardgame.domain.game.dto.GameRoomDto;
+import com.coders.boardgame.domain.game.dto.GameStateDto;
 import com.coders.boardgame.domain.game.dto.PlayerDto;
 import com.coders.boardgame.domain.game.dto.VoteResultDto;
 import com.coders.boardgame.domain.habitsurvey.repository.HabitSurveyResultRepository;
@@ -17,7 +18,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-// 게임 관련 service
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -27,7 +28,7 @@ public class GameService {
     private final GameSseService gameSseService;
 
     /**
-     * 게임 시작 메소드
+     * 게임 시작 시 게임정보를 SSE로 방에 있는 모든 클라이언트한테 전달
      * @param roomId 방 id
      * @param hostId 호스트 id
      */
@@ -49,9 +50,24 @@ public class GameService {
             throw new GameRoomException("이미 게임이 시작되었습니다.", HttpStatus.CONFLICT);
         }
 
-        // 게임 시작 알림
-        gameSseService.sendRoomEvent(roomId, "game-started", "게임이 시작되었습니다.");
-        log.info("게임 시작됨: roomId={}, hostId={}", roomId, hostId);
+        // 게임 상태 초기화
+        room.setCurrentTurn(1);
+        room.setCurrentPuzzlePieces(0);
 
+        // GameStateDto 생성
+        GameStateDto gameState = GameStateDto.builder()
+                .roomId(roomId)
+                .roomName(room.getRoomName())
+                .totalPlayers(room.getTotalPlayers())
+                .totalPuzzlePieces(room.getTotalPuzzlePieces())
+                .currentPuzzlePieces(room.getCurrentPuzzlePieces())
+                .currentTurn(room.getCurrentTurn())
+                .players(new ArrayList<>(room.getPlayers().values()))
+                .build();
+
+        // 게임 시작 알림
+        gameSseService.sendRoomEvent(roomId, "game-started", gameState);
+        log.info("게임 시작됨: roomId={}, hostId={}", roomId, hostId);
     }
+
 }

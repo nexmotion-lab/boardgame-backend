@@ -16,7 +16,7 @@ import java.io.IOException;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/games/rooms")
+@RequestMapping("/api/rooms")
 @RequiredArgsConstructor
 public class GameRoomController {
 
@@ -24,9 +24,9 @@ public class GameRoomController {
     private final SessionService sessionService;
 
     /**
-     * 방 생성
+     * 방 생성 API
      */
-    @PostMapping("/create")
+    @PostMapping
     public ResponseEntity<CreateRoomResponseDto> createRoom(
             @RequestBody CreateRoomRequestDto createRoomRequestDto,
             HttpServletRequest request) {
@@ -37,7 +37,7 @@ public class GameRoomController {
     }
 
     /**
-     * 방 정보 조회
+     * 방 정보 조회 API
      * @param roomId 방ID
      * @return GameRoomDto 객체
      */
@@ -49,47 +49,40 @@ public class GameRoomController {
     }
 
     /**
-     * 방 참가
-     *
+     * 방 참가 API
      * @param roomId 방 id
      * @param joinRoomRequestDto 방 참여 요청 dto
      * @param request request 객체
      * @return ResponseEntity<String>
      */
-    @PostMapping("/{roomId}/join")
-    public ResponseEntity<String> joinRoom(
+    @PostMapping("/{roomId}/players")
+    public ResponseEntity<WaitingRoomDto> joinRoom(
             @PathVariable String roomId,
             @RequestBody JoinRoomRequestDto joinRoomRequestDto,
             HttpServletRequest request) {
 
         Long userId = sessionService.getUserIdFromSession(request);
 
-        try {
-            PlayerDto player = gameRoomService.joinRoom(roomId, userId, joinRoomRequestDto);
-            return ResponseEntity.ok("플레이어 " + player.getPlayerInfo().getName() + "가 게임방(" + roomId + ")에 참여했습니다.");
-        } catch (GameRoomException e) {
-            return ResponseEntity.status(e.getStatus()).body(e.getMessage());
-        }
+        WaitingRoomDto waitingRoomDto = gameRoomService.joinRoom(roomId, userId, joinRoomRequestDto);
+        return ResponseEntity.ok(waitingRoomDto);
+
     }
 
     /**
-     * 방 나가기
+     * 방 나가기 API
      * @param roomId 방 id
      * @param request request 객체
      * @return ResponseEntity<String>
      */
-    @PostMapping("/{roomId}/leave")
+    @DeleteMapping("/{roomId}/players")
     public ResponseEntity<String> leaveRoom(
             @PathVariable String roomId, HttpServletRequest request) {
 
         Long userId = sessionService.getUserIdFromSession(request);
 
-        try {
-            gameRoomService.leaveRoom(roomId, userId);
-            return ResponseEntity.ok().build();
-        } catch (GameRoomException e) {
-            return ResponseEntity.status(e.getStatus()).body(e.getMessage());
-        }
+        gameRoomService.leaveRoom(roomId, userId);
+        return ResponseEntity.ok().build();
+
     }
 
     /**
@@ -100,19 +93,7 @@ public class GameRoomController {
      */
     @GetMapping(value = "/connect/{roomId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter connectToRoom(@PathVariable String roomId, HttpServletRequest request){
-        Long userId = sessionService.getUserIdFromSession(request);
-        SseEmitter emitter = gameRoomService.connectToRoom(roomId, userId);
+        return gameRoomService.connectToRoom(roomId, sessionService.getUserIdFromSession(request));
 
-        // 클라이언트에 초기 연결 상태 전송
-        try{
-            emitter.send(SseEmitter.event()
-                    .name("connected")
-                    .data("sse 연결이 설정되었습니다.")
-            );
-        } catch (IOException e){
-            log.error("SSE 초기 연결 실패: roomId={}, userId={}, error={}", roomId, userId, e.getMessage());
-            emitter.completeWithError(e);
-        }
-        return emitter;
     }
 }

@@ -7,6 +7,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * 서버 내부에서 상태 관리 및 로직 처리용
+ */
 @Getter
 @Setter
 @Builder

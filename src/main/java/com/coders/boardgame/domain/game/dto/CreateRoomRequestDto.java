@@ -12,4 +12,5 @@ public class CreateRoomRequestDto {
     private String roomName;
     private int totalPlayers; // 최대 플레이어 수 (3명 또는 4명)
     private UserDto hostInfo; // 방장 정보 포함
+    private int surveyScore; // 방장이 이용습괍 진단지 점수
 }

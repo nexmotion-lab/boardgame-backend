@@ -9,9 +9,9 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class GameSseService {
 
     private final Map<String, Map<Long, SseEmitter>> sseEmitters = new ConcurrentHashMap<>();
