@@ -24,7 +24,7 @@ public class GameSseService {
      * @return SseEmitter
      */
     public SseEmitter connectToRoom(String roomId, Long playerId) {
-        SseEmitter emitter = new SseEmitter(0L); // 타임아웃 없음
+        SseEmitter emitter = new SseEmitter(600_000L); // 타임아웃 10분
         sseEmitters.computeIfAbsent(roomId, k -> new ConcurrentHashMap<>()).put(playerId, emitter);
 
         emitter.onCompletion(() -> handleDisconnection(roomId, "completion", playerId));
@@ -60,6 +60,33 @@ public class GameSseService {
     }
 
     /**
+     * 방에 자신을 제외한 모든 인원한테 이벤트 전송
+     * @param roomId 방 Id
+     * @param eventName 이벤트 이름
+     * @param data 이벤트 데이터
+     * @param excludePlayerId 자신의 playerId
+     */
+    public void sendRoomEventToOthers(String roomId, String eventName, Object data, Long excludePlayerId){
+        Map<Long, SseEmitter> roomEmitters = sseEmitters.get(roomId);
+
+        if (roomEmitters != null) {
+            roomEmitters.forEach((playerId, emitter) ->{
+                if (!playerId.equals(excludePlayerId)) {
+                    try {
+                        emitter.send(SseEmitter.event()
+                                .name(eventName)
+                                .data(data));
+                    } catch (IOException e) {
+                        roomEmitters.remove(playerId);
+                        log.error("플레이어 이벤트 전송 실패: roomId={}, playerId={}, eventName={}, error={}",
+                                roomId, playerId, eventName, e.getMessage());
+                    }
+                }
+            });
+        }
+    }
+
+    /**
      * 특정 클라이언트한테 sse 이벤트 전송
      * @param roomId 방 id
      * @param playerId 플레이어 id
@@ -82,7 +109,6 @@ public class GameSseService {
             }
         }
     }
-
     /**
      * SSE 연결 모두 제거
      * @param roomId
@@ -94,6 +120,12 @@ public class GameSseService {
         }
     }
 
+    /**
+     * 사용자 나갈 시 연결 종료
+     * @param roomId
+     * @param reason
+     * @param playerId
+     */
     public void disconnectPlayer(String roomId, String reason, Long playerId){
         handleDisconnection(roomId, reason, playerId);
     }
