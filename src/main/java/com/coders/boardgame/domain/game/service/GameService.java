@@ -3,19 +3,12 @@ package com.coders.boardgame.domain.game.service;
 import com.coders.boardgame.domain.game.dto.GameRoomDto;
 import com.coders.boardgame.domain.game.dto.GameStateDto;
 import com.coders.boardgame.domain.game.dto.PlayerDto;
-import com.coders.boardgame.domain.game.dto.VoteResultDto;
-import com.coders.boardgame.domain.habitsurvey.repository.HabitSurveyResultRepository;
-import com.coders.boardgame.domain.user.entity.User;
-import com.coders.boardgame.domain.user.repository.UserRepository;
 import com.coders.boardgame.exception.GameRoomException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.Serializable;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
@@ -38,7 +31,7 @@ public class GameService {
      * @param roomId 방 id
      * @param hostId 호스트 id
      */
-    public void startGame(String roomId, Long hostId) {
+    public void startGame(String roomId, Long hostId, int maxId) {
         GameRoomDto room = gameRoomService.getRoom(roomId);
 
         // 호스트 확인
@@ -56,10 +49,13 @@ public class GameService {
             throw new GameRoomException("이미 게임이 시작되었습니다.", HttpStatus.CONFLICT);
         }
 
+        int assignedPuzzleImgId = ThreadLocalRandom.current().nextInt(1, maxId + 1);
+
         // 게임 상태 초기화
         room.setCurrentTurn(1);
         room.setCurrentPuzzlePieces(0);
         room.setCurrentRound(1);
+        room.setPuzzleImgId(assignedPuzzleImgId);
 
         // GameStateDto 생성
         GameStateDto gameState = GameStateDto.builder()
@@ -274,7 +270,8 @@ public class GameService {
      * 투표 결과를 처리하고, 퍼즐 조각 획득 여부를 결정.
      * 투표 결과를 기반으로 찬성(agree) 및 반대(disagree)의 개수를 계산하고,
      * 퍼즐 조각을 획득했는지 여부를 판단
-     * 투표 결과에 따라 퍼즐 조각 획득(success), 재투표(re-vote), 혹은 실패(failure) 이벤트를 발생
+     * 투표 결과에 따라 퍼즐 조각 획득(success), 재투표(re-vote), 혹은 실패(failure) 이벤트를 발생 시키고
+     * 퍼즐 조각이 남아있을 시 다음 턴으로 이동, 만약 퍼즐 조각을 다 모은 경우 게임을 완료하고 순위 결정
      *
      * @param room  투표 결과를 처리할 방 정보 (GameRoomDto)
      */
@@ -286,51 +283,88 @@ public class GameService {
         int disagreeCount = (int) roomVotes.values().stream().filter(v -> v.equals("disagree")).count();
 
 
-        boolean puzzleAcquired;
-        if (totalPlayers == 3){
-            puzzleAcquired = agreeCount >= 1; // 3명일 경우, 찬성 1명이면 획득
-        } else {
-            int majority = (int) Math.ceil(totalPlayers / 2.0); // 과반수 기준
-            puzzleAcquired = agreeCount >= majority;
-        }
+        boolean puzzleAcquired = totalPlayers == 3
+                ? agreeCount >= 1
+                : agreeCount >= (int) Math.ceil(totalPlayers / 2.0);
 
-        if(puzzleAcquired){
-            // 퍼즐 조각 획득 처리
-            PlayerDto currentSpeaker = getCurrentSpeaker(room);
-            currentSpeaker.setCollectedPuzzlePieces(currentSpeaker.getCollectedPuzzlePieces()+1);
-            room.setCurrentPuzzlePieces(room.getCurrentPuzzlePieces() + 1);
+        Map<String, Object> eventData = puzzleAcquired
+                ? handlePuzzleAcquired(room, agreeCount, disagreeCount)
+                : handlePuzzleFailed(room, agreeCount, disagreeCount, roomVotes);
 
-            Map<String, Object> eventData = Map.of(
-                    "result", "success",
+        gameSseService.sendRoomEvent(room.getRoomId(), "vote-result", eventData);
+        log.info("투표 결과 처리 완료: roomId={}, eventData={}", room.getRoomId(), eventData);
+    }
+
+    /**
+     * 퍼즐 획득 성공 처리
+     * @param room 방 정보
+     * @param agreeCount 찬성표 개수
+     * @param disagreeCount 반대표 개수
+     * @return sse 이벤트 데이터
+     */
+    private Map<String, Object> handlePuzzleAcquired(GameRoomDto room, int agreeCount, int disagreeCount) {
+        PlayerDto currentSpeaker = getCurrentSpeaker(room);
+        currentSpeaker.setCollectedPuzzlePieces(currentSpeaker.getCollectedPuzzlePieces()+1);
+        room.setCurrentPuzzlePieces(room.getCurrentPuzzlePieces() + 1);
+
+        if(room.getCurrentPuzzlePieces() >= room.getTotalPuzzlePieces()){
+            // 게임 완료 처리
+            List<Map<String, Object>> rankingData = completeGameAndRankPlayers(room);
+            // 방 상태 초기화
+            resetRoomAfterCompletion(room);
+            return Map.of(
+                    "result", "game-completed",
                     "agreeCount", agreeCount,
-                    "disagreeCount", disagreeCount
+                    "disagreeCount", disagreeCount,
+                    "ranking", rankingData,
+                    "puzzleImgId", room.getPuzzleImgId()
             );
-
-            gameSseService.sendRoomEvent(room.getRoomId(), "vote-result-success", eventData);
         } else {
-            List<String> disagreePlayers = roomVotes.entrySet().stream()
-                    .filter(entry -> entry.getValue().equals("disagree"))
-                    .map(entry -> room.getPlayers().get(entry.getKey()).getPlayerInfo().getName())
-                    .toList();
+            // 퍼즐 획득 및 다음 턴으로 이동
+            PlayerDto nextSpeaker = moveToNextTurn(room);
+            return Map.of(
+                    "result", "puzzle-acquired-next-turn",
+                    "agreeCount", agreeCount,
+                    "disagreeCount", disagreeCount,
+                    "nextSpeakerId", nextSpeaker.getPlayerId(),
+                    "nextSpeakerName", nextSpeaker.getPlayerInfo().getName()
+            );
+        }
+    }
 
-            if(!room.isHasReVoted()){
-                Map<String, Object> eventData = Map.of(
-                        "result", "re-vote",
-                        "agreeCount", agreeCount,
-                        "disagreeCount", disagreeCount,
-                        "disagreePlayers", disagreePlayers
-                );
-                gameSseService.sendRoomEvent(room.getRoomId(), "vote-result-re-vote", eventData);
-                room.setHasReVoted(true);
-            }
-            else {
-                Map<String, Object> eventData = Map.of(
-                        "result", "failure",
-                        "agreeCount", agreeCount,
-                        "disagreeCount", disagreeCount
-                );
-                gameSseService.sendRoomEvent(room.getRoomId(), "vote-result-failure", eventData);
-            }
+
+    /**
+     * 퍼즐 획득 실패 처리
+     * @param room 방정보
+     * @param agreeCount 찬성표 개수
+     * @param disagreeCount 반대표 개수
+     * @param roomVotes 투표 결과
+     * @return sse 이벤트 데이터
+     */
+    private Map<String, Object> handlePuzzleFailed(GameRoomDto room, int agreeCount, int disagreeCount, Map<Long, String> roomVotes) {
+        List<String> disagreePlayers = roomVotes.entrySet().stream()
+                .filter(entry -> entry.getValue().equals("disagree"))
+                .map(entry -> room.getPlayers().get(entry.getKey()).getPlayerInfo().getName())
+                .toList();
+
+        if(!room.isHasReVoted()){
+            room.setHasReVoted(true);
+            return Map.of(
+                    "result", "re-vote",
+                    "agreeCount", agreeCount,
+                    "disagreeCount", disagreeCount,
+                    "disagreePlayers", disagreePlayers
+            );
+        } else {
+            // 퍼즐 획득 실패 및 다음 턴으로 이동
+            PlayerDto nextSpeaker = moveToNextTurn(room);
+            return Map.of(
+                    "result", "puzzle-failed-next-turn",
+                    "agreeCount", agreeCount,
+                    "disagreeCount", disagreeCount,
+                    "nextSpeakerId", nextSpeaker.getPlayerId(),
+                    "nextSpeakerName", nextSpeaker.getPlayerInfo().getName()
+            );
         }
     }
 
@@ -351,6 +385,91 @@ public class GameService {
     }
 
 
+    /**
+     * 다음 턴으로 이동. 새로운 발화자를 설정하고 및 방 현재 퍼즐 갯수 증가
+     * @param room 다음 턴으로 진행할 방 정보 (GameRoomDto)
+     * @return 다음 발화해야하는 플레이어 (PlayerDto)
+     */
+    private PlayerDto moveToNextTurn(GameRoomDto room){
+        // 현재 턴 증가 (순환)
+        int nextTurn = (room.getCurrentTurn() % room.getTotalPlayers()) + 1;
+        room.setCurrentTurn(nextTurn);
+
+        // 기존 발화자의 상태를 초기화
+        room.getPlayers().values().stream()
+                .filter(PlayerDto::isSpeaking)
+                .findFirst()
+                .ifPresent(player -> player.setSpeaking(false));
+
+        // 새로운 발화자 설정 및 반환
+        PlayerDto nextSpeaker = room.getPlayers().values().stream()
+                .filter(player -> player.getSequenceNumber() == nextTurn)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("다음 발화자를찾을 수 없습니다."));
+
+        // 다음 발화자를 발화 상태로 설정
+        nextSpeaker.setSpeaking(true);
+
+        log.info("다음 턴으로 이동: roomId={}, nextSpeakerId={}, currentTurn={}",
+                room.getRoomId(), nextSpeaker.getPlayerId(), nextTurn);
+
+        return nextSpeaker;
+
+    }
+
+    /**
+     * 게임 완료 시 퍼즐 완성 및 순위 결졍
+     * @param room 게임이 완료된 방 정보 (GameRoomDto)
+     */
+    private List<Map<String, Object>> completeGameAndRankPlayers(GameRoomDto room){
+        // 플레이어 랭킹 계산
+        List<PlayerDto> rankedPlayers = room.getPlayers().values().stream()
+                .sorted(Comparator.comparingInt(PlayerDto::getCollectedPuzzlePieces).reversed()
+                        .thenComparingInt(PlayerDto::getSequenceNumber))
+                .toList();
+
+        // 랭킹 결과 데이터 생성
+        return rankedPlayers.stream()
+                .map(player -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("playerId", player.getPlayerId());
+                    map.put("playerName", player.getPlayerInfo().getName());
+                    map.put("puzzlePieces", player.getCollectedPuzzlePieces());
+                    return map;
+                })
+                .toList();
+    }
+
+    /**
+     * 퍼즐 완료 후, 게임 관련 상태 초기화
+     * @param room 초기화할 게임방
+     */
+    private void resetRoomAfterCompletion(GameRoomDto room) {
+        // 게임 관련 필드 초기화
+        room.setCurrentTurn(0); //
+        room.setCurrentPuzzlePieces(0);
+        room.getIsGameStarted().set(false);
+        room.setHasReVoted(false);
+
+        // 플레이어 상태 초기화
+        room.getPlayers().values().forEach(this::resetPlayerState);
+
+        // 투표 데이터 초기화
+        votes.remove(room.getRoomId());
+
+        log.info("방 상태 초기화 완료: roomId={}", room.getRoomId());
+    }
+
+    /**
+     * 게임 진행중 플레이어 상태 초기화
+     * @param player
+     */
+    private void resetPlayerState(PlayerDto player) {
+        player.setCollectedPuzzlePieces(0);
+        player.setSequenceNumber(0);
+        player.setSpeaking(false);
+        player.setUsageTime(0); // 사용 시간 초기화
+    }
 
     /**
      * 게임 상태 초기화

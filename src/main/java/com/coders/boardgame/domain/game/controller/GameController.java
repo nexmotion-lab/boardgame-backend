@@ -28,15 +28,17 @@ public class GameController {
 
     /**
      * 게임 시작 API
-     * @param roomId
-     * @param request
+     * @param roomId 방 ID
+     * @param request 클라이언트 요청 객체
      * @return
      */
     @PostMapping("/{roomId}/round/1/state")
-    public ResponseEntity<String> startGame(@PathVariable String roomId, HttpServletRequest request) {
+    public ResponseEntity<String> startGame(@PathVariable String roomId,
+                                            @RequestParam int maxId,
+                                            HttpServletRequest request) {
 
         Long userId = sessionService.getUserIdFromSession(request);
-        gameService.startGame(roomId, userId);
+        gameService.startGame(roomId, userId, maxId);
         return ResponseEntity.ok("게임 시작을 완료했습니다.");
     }
 
@@ -47,7 +49,7 @@ public class GameController {
      * @param request   요청
      * @return
      */
-    @PostMapping("/{roomId}/usage-time")
+    @PostMapping("/{roomId}/round/1/usage-time")
     public ResponseEntity<String> setUsageTime(@PathVariable String roomId,
                                                @RequestParam int usageTime,
                                                HttpServletRequest request) {
@@ -64,7 +66,7 @@ public class GameController {
      * @param request
      * @return
      */
-    @PostMapping("/{roomId}/start-round/2")
+    @PostMapping("/{roomId}/round/2/state")
     public ResponseEntity<String> startRoundTwo(
             @PathVariable String roomId,
             HttpServletRequest request) {
@@ -116,6 +118,13 @@ public class GameController {
         return ResponseEntity.ok("말하기가 종료되었습니다.");
     }
 
+    /**
+     * 투표 API
+     * @param roomId 방 ID
+     * @param vote 투표 내용
+     * @param request 클라이언트 요청 객체
+     * @return 투표 성공 메세지
+     */
     @PostMapping("/{roomId}/votes")
     public ResponseEntity<String> castVote(
             @PathVariable String roomId,

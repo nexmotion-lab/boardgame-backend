@@ -26,6 +26,7 @@ public class GameRoomDto {
     private int totalPuzzlePieces; // 총 퍼즐 조각 개수
     private int currentPuzzlePieces; // 현재 획득한 퍼즐 조각 개수
     private int currentRound;
+    private int puzzleImgId; // 퍼즐 이미지 id
     private AtomicBoolean isGameStarted = new AtomicBoolean(false); // 게임 시작 여부
     private boolean isPictureCardAssigned = false;
     private boolean isTextCardAssigned = false;
