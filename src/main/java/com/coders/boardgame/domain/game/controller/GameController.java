@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/games/room")
+@RequestMapping("/api/games")
 @RequiredArgsConstructor
 @Slf4j
 public class GameController {
@@ -26,60 +26,113 @@ public class GameController {
     private final GameService gameService;
     private final SessionService sessionService;
 
-    @PostMapping
-    public ResponseEntity<String> createGameRoom(@RequestBody GameRoomDto room, HttpServletRequest request) {
+    /**
+     * 게임 시작 API
+     * @param roomId 방 ID
+     * @param request 클라이언트 요청 객체
+     * @return
+     */
+    @PostMapping("/{roomId}/round/1/state")
+    public ResponseEntity<String> startGame(@PathVariable String roomId,
+                                            @RequestParam int maxId,
+                                            HttpServletRequest request) {
+
+        Long userId = sessionService.getUserIdFromSession(request);
+        gameService.startGame(roomId, userId, maxId);
+        return ResponseEntity.ok("게임 시작을 완료했습니다.");
+    }
+
+    /**
+     * 사용 시간 입력 API
+     * @param roomId    룸 ID
+     * @param usageTime 스마트폰 사용시간
+     * @param request   요청
+     * @return
+     */
+    @PostMapping("/{roomId}/round/1/usage-time")
+    public ResponseEntity<String> setUsageTime(@PathVariable String roomId,
+                                               @RequestParam int usageTime,
+                                               HttpServletRequest request) {
         Long userId = sessionService.getUserIdFromSession(request);
 
-        String roomId = gameService.createGameRoom(userId, room);
-        log.info("방 생성 완료: " + roomId);
-        return ResponseEntity.ok(roomId);
+        gameService.setUsageTime(roomId, userId, usageTime);
+        return ResponseEntity.ok("사용 시간 입력 완료");
     }
 
-    @GetMapping("/{roomId}")
-    public ResponseEntity<GameRoomDto> getGameRoom(@PathVariable String roomId) {
-        GameRoomDto room = gameService.getGameRoom(roomId);
-        log.info(room.getPlayers().toString());
-        return ResponseEntity.ok(room);
-    }
-
-    @PostMapping("/{roomId}/join")
-    public ResponseEntity<String> joinGameRoom(@PathVariable String roomId, HttpServletRequest request) {
+    /**
+     * 사용자 순서 배정 이후
+     * 게임 라운드 2를 시작하기 위한 API
+     * @param roomId
+     * @param request
+     * @return
+     */
+    @PostMapping("/{roomId}/round/2/state")
+    public ResponseEntity<String> startRoundTwo(
+            @PathVariable String roomId,
+            HttpServletRequest request) {
         Long userId = sessionService.getUserIdFromSession(request);
 
-        try {
-            PlayerDto player = gameService.addPlayer(roomId, userId);
-            return ResponseEntity.ok("플레이어 " + player.getName() + "가 게임방(" + roomId + ")에 참여했습니다.");
-        } catch (GameRoomException e) {
-            return ResponseEntity.status(e.getStatus()).body(e.getMessage());
-        }
+        gameService.startRound(roomId, 2, userId);
+        return ResponseEntity.ok("2라운드 시작");
     }
 
-    @PostMapping("/{roomId}/submit")
-    public ResponseEntity<Void> submitUsedTime(@PathVariable String roomId, @RequestBody PlayerDto player) {
-        gameService.submitUsedTime(roomId, player);
-        return ResponseEntity.ok().build();
+    /**
+     * 말하기 세션이 시작하기 위해
+     * 랜덤으로 카드를 부여를 처리하기 위한 API
+     * @param roomId   룸 id
+     * @param cardType 카드타입
+     * @param maxId    보유한 카드의 최대 id
+     * @return
+     */
+    @PostMapping("/{roomId}/card/{cardType}")
+    public ResponseEntity<String> assignCard(
+            @PathVariable String roomId,
+            @PathVariable String cardType,
+            @RequestParam int maxId) {
+        gameService.assignCard(roomId, maxId, cardType);
+        return ResponseEntity.ok(cardType + "카드가 부여되었습니다.");
     }
 
-    @GetMapping("/{roomId}/start")
-    public ResponseEntity<PlayerDto> startGame(@PathVariable String roomId) {
-        PlayerDto currentPlayer = gameService.startGame(roomId);
-        return ResponseEntity.ok(currentPlayer);
+    /**
+     * 말하기 세션중 시간 연장을 처리하는 API
+     * @param roomId         방Id
+     * @param additionalTime 추가할 시간
+     * @return
+     */
+    @PostMapping("/{roomId}/timer/extensions")
+    public ResponseEntity<String> extendTime(
+            @PathVariable String roomId,
+            @RequestParam int additionalTime) {
+        gameService.extendTime(roomId, additionalTime);
+        return ResponseEntity.ok("시간이 연장되었습니다.");
     }
 
-    @PostMapping("/{roomId}/vote")
-    public ResponseEntity<VoteResultDto> vote(@PathVariable String roomId, @RequestParam Long userId, @RequestParam boolean isAgreed) {
-        VoteResultDto result = gameService.vote(roomId, userId, isAgreed);
-        return ResponseEntity.ok(result);
+    /**
+     * 종료된 말하기 세션을 처리하는 API
+     * @param roomId
+     * @return
+     */
+    @PostMapping("/{roomId}/speaking/end")
+    public ResponseEntity<String> endSpeaking(@PathVariable String roomId){
+        gameService.endSpeaking(roomId);
+        return ResponseEntity.ok("말하기가 종료되었습니다.");
     }
 
-    @GetMapping("/{roomId}/ranking")
-    public ResponseEntity<List<PlayerDto>> calculateRankings(@PathVariable String roomId) {
-        List<PlayerDto> result = gameService.calculateRankings(roomId);
+    /**
+     * 투표 API
+     * @param roomId 방 ID
+     * @param vote 투표 내용
+     * @param request 클라이언트 요청 객체
+     * @return 투표 성공 메세지
+     */
+    @PostMapping("/{roomId}/votes")
+    public ResponseEntity<String> castVote(
+            @PathVariable String roomId,
+            @RequestParam String vote,
+            HttpServletRequest request){
+        Long userId = sessionService.getUserIdFromSession(request);
+        gameService.castVote(roomId, userId, vote);
 
-        if (result.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
-
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok("투표 완료했습니다.");
     }
 }
