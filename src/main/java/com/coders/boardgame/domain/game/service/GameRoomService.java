@@ -114,11 +114,14 @@ public class GameRoomService {
 
         SseEmitter emitter = gameSseService.connectToRoom(roomId, playerId);
 
+        boolean isHost = playerId.equals(room.getHostId());
+
         WaitingRoomDto waitingRoomDto = WaitingRoomDto.builder()
                 .roomId(room.getRoomId())
                 .roomName(room.getRoomName())
                 .currentPlayers(room.getCurrentPlayers().get())
                 .totalPlayers(room.getTotalPlayers())
+                .isHost(isHost)
                 .players(new ArrayList<>(room.getPlayers().values()))
                 .build();
 
@@ -164,6 +167,7 @@ public class GameRoomService {
             throw new GameRoomException("방이 가득찼습니다: " + roomId, HttpStatus.FORBIDDEN);
         }
 
+
         // 플레이어 생성
         PlayerDto player = PlayerDto.builder()
                 .playerId(userId)
@@ -181,12 +185,15 @@ public class GameRoomService {
 
 
         // WaitingRoomDto 생성
+        boolean isHost = userId.equals(room.getHostId());
+
 
         return WaitingRoomDto.builder()
                 .roomId(roomId)
                 .roomName(room.getRoomName())
                 .currentPlayers(currentPlayers)
                 .totalPlayers(room.getTotalPlayers())
+                .isHost(isHost)
                 .players(new ArrayList<>(room.getPlayers().values()))
                 .build();
     }
