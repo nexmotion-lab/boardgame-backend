@@ -307,6 +307,10 @@ public class GameService {
         currentSpeaker.setCollectedPuzzlePieces(currentSpeaker.getCollectedPuzzlePieces()+1);
         room.setCurrentPuzzlePieces(room.getCurrentPuzzlePieces() + 1);
 
+        // 퍼즐 획득 방식 추가(재투표 여부)
+        boolean hasReVoted = room.isHasReVoted();
+        room.setHasReVoted(false);
+
         if(room.getCurrentPuzzlePieces() >= room.getTotalPuzzlePieces()){
             // 게임 완료 처리
             List<Map<String, Object>> rankingData = completeGameAndRankPlayers(room);
@@ -316,8 +320,10 @@ public class GameService {
                     "result", "game-completed",
                     "agreeCount", agreeCount,
                     "disagreeCount", disagreeCount,
-                    "ranking", rankingData,
-                    "puzzleImgId", room.getPuzzleImgId()
+                    "rankingData", rankingData,
+                    "puzzleImgId", room.getPuzzleImgId(),
+                    "hasReVoted", hasReVoted // 재투표 여부
+
             );
         } else {
             // 퍼즐 획득 및 다음 턴으로 이동
@@ -327,7 +333,8 @@ public class GameService {
                     "agreeCount", agreeCount,
                     "disagreeCount", disagreeCount,
                     "nextSpeakerId", nextSpeaker.getPlayerId(),
-                    "nextSpeakerName", nextSpeaker.getPlayerInfo().getName()
+                    "nextSpeakerName", nextSpeaker.getPlayerInfo().getName(),
+                    "hasReVoted", hasReVoted // 재투표 여부
             );
         }
     }
@@ -358,6 +365,7 @@ public class GameService {
         } else {
             // 퍼즐 획득 실패 및 다음 턴으로 이동
             PlayerDto nextSpeaker = moveToNextTurn(room);
+            room.setHasReVoted(false);
             return Map.of(
                     "result", "puzzle-failed-next-turn",
                     "agreeCount", agreeCount,
@@ -484,14 +492,10 @@ public class GameService {
         room.setCurrentRound(0);
         room.setCurrentTurn(0);
         room.setCurrentPuzzlePieces(0);
+        room.setHasReVoted(false);
 
         // 플레이어 상태 초기화
-        room.getPlayers().values().forEach(player -> {
-            player.setSequenceNumber(0);
-            player.setUsageTime(0);
-            player.setSpeaking(false);
-        });
-
+        room.getPlayers().values().forEach(this::resetPlayerState);
         // 초기화 완료 이벤트 전송
         gameSseService.sendRoomEvent(roomId, "game-reset", "게임이 초기화되었습니다. 호스트가 게임을 다시 시작할 수 있습니다");
         log.info("게임이 초기화되었습니다: roomId={}", roomId);
