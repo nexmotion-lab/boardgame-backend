@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 @Slf4j
 @RestController
@@ -42,10 +43,17 @@ public class GameRoomController {
      * @return GameRoomDto 객체
      */
     @GetMapping("/{roomId}")
-    public ResponseEntity<GameRoomDto> getGameRoom(@PathVariable String roomId) {
+    public ResponseEntity<WaitingRoomDto> getGameRoom(@PathVariable String roomId) {
         GameRoomDto room = gameRoomService.getRoom(roomId);
-        log.info(room.getPlayers().toString());
-        return ResponseEntity.ok(room);
+        WaitingRoomDto roomDto = WaitingRoomDto.builder()
+                .roomId(roomId)
+                .roomName(room.getRoomName())
+                .currentPlayers(room.getCurrentPlayers().get())
+                .totalPlayers(room.getTotalPlayers())
+                .hostId(room.getHostId())
+                .players(new ArrayList<>(room.getPlayers().values()))
+                .build();
+        return ResponseEntity.ok(roomDto);
     }
 
     /**
@@ -80,7 +88,7 @@ public class GameRoomController {
 
         Long userId = sessionService.getUserIdFromSession(request);
 
-        gameRoomService.leaveRoom(roomId, userId);
+        gameRoomService.leaveRoom(roomId, userId, true);
         return ResponseEntity.ok().build();
 
     }

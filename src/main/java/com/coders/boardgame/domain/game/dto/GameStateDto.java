@@ -15,5 +15,6 @@ public class GameStateDto {
     private int currentPuzzlePieces;
     private int currentTurn;
     private int currentRound;
+    private Long hostId;
     private List<PlayerDto> players;
 }

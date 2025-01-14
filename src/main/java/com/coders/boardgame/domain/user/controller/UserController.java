@@ -1,15 +1,16 @@
 package com.coders.boardgame.domain.user.controller;
 
 import com.coders.boardgame.domain.user.dto.UserDto;
+import com.coders.boardgame.domain.user.service.SessionService;
 import com.coders.boardgame.domain.user.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.Serializable;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -17,18 +18,26 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final SessionService sessionService;
 
-    @PostMapping("/signup")
+    @PostMapping
     public ResponseEntity<?> signUp(@RequestBody UserDto userDto, HttpServletRequest request) {
         try {
             // 1. UserService를 통해 사용자 등록 및 세션 생성
             String sessionId = userService.signUp(userDto, request);
+            Long userId = sessionService.getUserIdFromSession(request);
+
+            // userId를 포함해 응답
+            Map<String, Object> responseData = Map.of(
+                    "sessionId", sessionId,
+                    "userId", userId
+            );
 
             // 2. 성공 응답 반환
-            return ResponseEntity.ok(sessionId);
+            return ResponseEntity.ok(responseData);
         } catch (Exception e) {
             // 3. 예외 처리
-            return ResponseEntity.status(500).body("An error occurred during signup: " + e.getMessage());
+            return ResponseEntity.status(500).body("로그인 중 오류가 발생했습니다." + e.getMessage());
         }
     }
 

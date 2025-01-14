@@ -1,8 +1,6 @@
 package com.coders.boardgame.domain.game.controller;
 
-import com.coders.boardgame.domain.game.dto.GameRoomDto;
-import com.coders.boardgame.domain.game.dto.PlayerDto;
-import com.coders.boardgame.domain.game.dto.VoteResultDto;
+import com.coders.boardgame.domain.game.dto.*;
 import com.coders.boardgame.domain.user.service.SessionService;
 import com.coders.boardgame.exception.GameRoomException;
 import com.coders.boardgame.domain.game.service.GameService;
@@ -26,6 +24,34 @@ public class GameController {
     private final GameService gameService;
     private final SessionService sessionService;
 
+
+    /**
+     * 게임 상태 조희 API
+     * @param roomId 방 정보
+     * @param request 클라이언트 요청 객체
+     * @return
+     */
+    @GetMapping("/{roomId}/state")
+    public ResponseEntity<GameStateDto> getGameState(@PathVariable String roomId, HttpServletRequest request) {
+
+        Long userId = sessionService.getUserIdFromSession(request);
+        GameStateDto gameState = gameService.getGameState(roomId, userId);
+        return ResponseEntity.ok(gameState);
+
+    }
+
+    /**
+     * 게임 중 타이머 시간 동기화를 위한 API
+     * @param roomId
+     * @return
+     */
+    @GetMapping("/{roomId}/time-sync")
+    public ResponseEntity<TimeSyncDto> getTimeSync(@PathVariable String roomId) {
+        long serverTime = System.currentTimeMillis();
+        TimeSyncDto timeSyncDto = new TimeSyncDto(serverTime);
+        return ResponseEntity.ok(timeSyncDto);
+    }
+
     /**
      * 게임 시작 API
      * @param roomId 방 ID
@@ -34,11 +60,10 @@ public class GameController {
      */
     @PostMapping("/{roomId}/round/1/state")
     public ResponseEntity<String> startGame(@PathVariable String roomId,
-                                            @RequestParam int maxId,
                                             HttpServletRequest request) {
 
         Long userId = sessionService.getUserIdFromSession(request);
-        gameService.startGame(roomId, userId, maxId);
+        gameService.startGame(roomId, userId);
         return ResponseEntity.ok("게임 시작을 완료했습니다.");
     }
 

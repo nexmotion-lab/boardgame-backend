@@ -20,7 +20,7 @@ public class SchoolController {
 
     private final SchoolService schoolService;
 
-    @GetMapping("/search")
+    @GetMapping
     public ResponseEntity<List<SchoolInfoDto>> searchSchools(@RequestParam("query") String query){
         List<SchoolInfoDto> results = schoolService.searchSchools(query);
         return ResponseEntity.ok(results);
