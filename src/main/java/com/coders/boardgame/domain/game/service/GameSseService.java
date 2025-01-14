@@ -1,7 +1,10 @@
 package com.coders.boardgame.domain.game.service;
 
+import com.coders.boardgame.domain.game.dto.ConnectionResult;
+import com.coders.boardgame.domain.game.event.PlayerDisconnectedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -14,24 +17,38 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class GameSseService {
 
+    private static final Long SSE_SESSION_TIMEOUT = 60 * 10 * 1000L;
     private final Map<String, Map<Long, SseEmitter>> sseEmitters = new ConcurrentHashMap<>();
+    private final ApplicationEventPublisher eventPublisher; // 이벤트 발행기 주입
 
 
     /**
      * SSE 연결 추가
      * @param roomId 방 ID
      * @param playerId 플레이어 ID
-     * @return SseEmitter
+     * @return ConnectionResult
      */
-    public SseEmitter connectToRoom(String roomId, Long playerId) {
-        SseEmitter emitter = new SseEmitter(600_000L); // 타임아웃 10분
-        sseEmitters.computeIfAbsent(roomId, k -> new ConcurrentHashMap<>()).put(playerId, emitter);
+    public ConnectionResult connectToRoom(String roomId, Long playerId) {
 
-        emitter.onCompletion(() -> handleDisconnection(roomId, "completion", playerId));
-        emitter.onTimeout(() -> handleDisconnection(roomId, "timeout", playerId));
-        emitter.onError(e -> handleDisconnection(roomId, "error", playerId));
+        Map<Long, SseEmitter> roomEmitters = sseEmitters.computeIfAbsent(roomId, k -> new ConcurrentHashMap<>());
 
-        return emitter;
+        boolean isReconnecting = false;
+        SseEmitter existingEmitter = roomEmitters.get(playerId);
+        if (existingEmitter != null) {
+            // 기존 연결이 존재하면 제거하고 재연결 처리
+            existingEmitter.complete();
+            isReconnecting = true;
+            log.info("플레이어 재연결: roomId={}, playerId={}", roomId, playerId);
+        }
+
+        SseEmitter emitter = new SseEmitter(SSE_SESSION_TIMEOUT); // 타임아웃 10분
+        roomEmitters.put(playerId, emitter);
+
+        emitter.onCompletion(() -> handleDisconnection(roomId, "completion", playerId, true));
+        emitter.onTimeout(() -> handleDisconnection(roomId, "timeout", playerId, true));
+        emitter.onError(e -> handleDisconnection(roomId, "error", playerId, true));
+
+        return new ConnectionResult(emitter, isReconnecting);
     }
 
 
@@ -126,8 +143,8 @@ public class GameSseService {
      * @param reason
      * @param playerId
      */
-    public void disconnectPlayer(String roomId, String reason, Long playerId){
-        handleDisconnection(roomId, reason, playerId);
+    public void disconnectPlayer(String roomId, String reason, Long playerId, boolean isUnexpected){
+        handleDisconnection(roomId, reason, playerId, false); // 의도적인 연결 종료
     }
 
     /**
@@ -136,7 +153,7 @@ public class GameSseService {
      * @param playerId 플레이어 ID
      * @param reason 종료 이유
      */
-    private void handleDisconnection(String roomId, String reason, Long playerId) {
+    private void handleDisconnection(String roomId, String reason, Long playerId, boolean isUnexpected) {
         Map<Long, SseEmitter> roomEmitters = sseEmitters.get(roomId);
         if (roomEmitters != null) {
             SseEmitter emitter = roomEmitters.remove(playerId);
@@ -145,5 +162,10 @@ public class GameSseService {
             }
         }
         log.info("SSE 연결 해제 {}: roomId = {}, playerId = {}", reason, roomId, playerId);
+
+        if (isUnexpected){
+            // 비의도적인 연결 끊김 시 이벤트 발행
+            eventPublisher.publishEvent(new PlayerDisconnectedEvent(this, roomId, playerId, true));
+        }
     }
 }

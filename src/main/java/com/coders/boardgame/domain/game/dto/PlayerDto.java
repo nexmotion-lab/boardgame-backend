@@ -4,8 +4,6 @@ import com.coders.boardgame.domain.user.dto.UserDto;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 @Data
 @Builder
 public class PlayerDto {
