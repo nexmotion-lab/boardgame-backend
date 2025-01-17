@@ -3,6 +3,7 @@ package com.coders.boardgame.domain.game.service;
 import com.coders.boardgame.domain.game.dto.GameRoomDto;
 import com.coders.boardgame.domain.game.dto.GameStateDto;
 import com.coders.boardgame.domain.game.dto.PlayerDto;
+import com.coders.boardgame.domain.game.enums.RoomStatus;
 import com.coders.boardgame.exception.GameRoomException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,16 +41,21 @@ public class GameService {
 
         // 참가자 수 확인
         if (room.getCurrentPlayers().get() < room.getTotalPlayers()) {
-            throw new GameRoomException("모든 참가자가 준비되지 않습니다.", HttpStatus.CONFLICT);
+            throw new GameRoomException("참가자가 방에 다 있지 않습니다.", HttpStatus.CONFLICT);
+        }
+
+        // 참가자 모두 준비완료 했는지
+        if (!room.getPlayers().values().stream().allMatch(PlayerDto::isReady)) {
+            throw new GameRoomException("참가자가 모두 준비상태가 아닙니다.", HttpStatus.FORBIDDEN);
         }
 
         // 모든 조건이 충족되었으므로 게임 시작 상태 변경
-        if (room.getRoomStatus() != GameRoomDto.RoomStatus.WAITING) {
+        if (room.getRoomStatus() != RoomStatus.WAITING) {
             throw new GameRoomException("이미 게임이 시작되었습니다.", HttpStatus.CONFLICT);
         }
 
         // 방 상태르 IN_GAME으로 변경
-        room.setRoomStatus(GameRoomDto.RoomStatus.IN_GAME);
+        room.setRoomStatus(RoomStatus.IN_GAME);
 
         // 게임 상태 초기화
         room.setCurrentTurn(1);
@@ -111,8 +117,9 @@ public class GameService {
             // 순번 매기기: 사용시간 -> 설문 점수 -> 랜덤 순서
             List<PlayerDto> sortedPlayers = new ArrayList<>(room.getPlayers().values());
             sortedPlayers.sort(Comparator.comparingInt(PlayerDto::getUsageTime)
-                    .thenComparingInt(PlayerDto::getSurveyScore).reversed()
-                    .thenComparing(p -> ThreadLocalRandom.current().nextInt()));
+                    .thenComparing(Comparator.comparingInt(PlayerDto::getSurveyScore).reversed())
+                    .thenComparing(p -> ThreadLocalRandom.current().nextInt()))
+            ;
 
             // 순번 할당
             int[] index = {1};
@@ -152,7 +159,7 @@ public class GameService {
         }
 
         // 게임 시작 여부 확인
-        if (room.getRoomStatus() != GameRoomDto.RoomStatus.IN_GAME) {
+        if (room.getRoomStatus() != RoomStatus.IN_GAME) {
             throw new GameRoomException("게임이 아직 시작되지 않았습니다.", HttpStatus.CONFLICT);
         }
 
@@ -290,14 +297,46 @@ public class GameService {
         votes.remove(roomId);
 
         // 방 상태를 WAITING으로 변경
-        room.setRoomStatus(GameRoomDto.RoomStatus.WAITING);
+        room.setRoomStatus(RoomStatus.WAITING);
+
+        gameRoomService.reassignHostIfNeed(roomId);
 
         // 초기화 완료 이벤트 전송
         gameSseService.sendRoomEvent(roomId, "game-reset", "게임이 초기화되어 대기방으로 이동");
 
-        gameRoomService.reassignHostIfNeed(roomId);
 
         log.info("게임이 초기화되었습니다: roomId={}", roomId);
+    }
+
+    /**
+     * 게임 다시하기 요청
+     * @param roomId
+     * @param playerId
+     */
+    public void retryGame(String roomId, Long playerId) {
+        GameRoomDto room = gameRoomService.getRoom(roomId);
+
+        // 플레이어 정보 가져오기
+        PlayerDto player = room.getPlayers().get(playerId);
+        if (player == null) {
+            throw new GameRoomException("플레이어가 방에 존재하지 않습니다.", HttpStatus.NOT_FOUND);
+        }
+
+        // 플레이어 준비 상태 설정
+        player.setReady(true);
+        log.info("플레이어가 다시하기를 요청했습니다: playerId={}, roomId={}", playerId, roomId);
+
+        // 게임 상태 확인 및 처리
+        if (room.getRoomStatus() != RoomStatus.WAITING) {
+            room.setRoomStatus(RoomStatus.WAITING);
+            log.info("게임 상태를 대기중으로 변경 했습니다.");
+        }
+
+        Map<String, Object> eventData = Map.of(
+                "playerId", playerId,
+                "isReady", true
+        );
+        gameSseService.sendRoomEventToOthers(roomId, "player-ready", eventData, playerId);
     }
 
     /**
@@ -321,20 +360,26 @@ public class GameService {
                 ? agreeCount >= 1
                 : agreeCount >= (int) Math.ceil(totalPlayers / 2.0);
 
-        Map<String, Object> eventData = puzzleAcquired
+        Map<String, Object> eventData = new HashMap<>(puzzleAcquired
                 ? handlePuzzleAcquired(room, agreeCount, disagreeCount)
-                : handlePuzzleFailed(room, agreeCount, disagreeCount, roomVotes);
+                : handlePuzzleFailed(room, agreeCount, disagreeCount, roomVotes));
 
         // result를 확인해서 분기
         String result = (String) eventData.get("result");
 
         if ("puzzle-acquired-next-turn".equals(result) || "puzzle-failed-next-turn".equals(result)){
-           moveToNextTurn(room);
-           sendNextTurnEventToEachPlayer(room, eventData);
+            moveToNextTurn(room);
+
+            // 다음 턴의 현재인원 받아옴
+            PlayerDto currentSpeaker = getCurrentSpeaker(room);
+            eventData.put("nextSpeakerId", currentSpeaker.getPlayerId());
+
+            gameSseService.sendRoomEvent(room.getRoomId(), "vote-result", eventData);
         } else {
             gameSseService.sendRoomEvent(room.getRoomId(), "vote-result", eventData);
         }
         log.info("투표 결과 처리 완료: roomId={}, eventData={}", room.getRoomId(), eventData);
+        votes.remove(room.getRoomId());
     }
 
     /**
@@ -484,30 +529,6 @@ public class GameService {
     }
 
     /**
-     * 다음 턴에서 각 플레이어의 역할(speaker/listener)을 알리는 SSE 전송 메서드.
-     * (puzzle-acquired-next-turn / puzzle-failed-next-turn 시점에 호출)
-     *
-     * @param room     다음 턴 정보를 보낼 게임 방
-     * @param baseData 투표 결과 등 공통 정보 (result, agreeCount 등)
-     */
-    private void sendNextTurnEventToEachPlayer(GameRoomDto room, Map<String, Object> baseData){
-        PlayerDto speaker = getCurrentSpeaker(room);
-        Long speakerId = speaker.getPlayerId();
-
-        // 모든 플레이어에게 role을 구분해서 전송
-        room.getPlayers().forEach((playerId, player) ->{
-            boolean isSpeaking = playerId.equals(speakerId);
-
-            // eventData에 추가필드를 넣어 전송
-            HashMap<String, Object> finalData = new HashMap<>(baseData);
-            finalData.put("nextRole", isSpeaking ? "speaker" : "listener");
-            finalData.put("nextSpeakerId", speakerId);
-
-            gameSseService.sendToSpecificPlayer(room.getRoomId(), playerId, "vote-result", finalData);
-        });
-    }
-
-    /**
      * 퍼즐 완료 후, 게임 관련 상태 초기화
      * @param room 초기화할 게임방
      */
@@ -515,11 +536,17 @@ public class GameService {
         // 게임 관련 필드 초기화
         room.setCurrentTurn(0); //
         room.setCurrentPuzzlePieces(0);
-        room.setRoomStatus(GameRoomDto.RoomStatus.ENDED);
+        room.setRoomStatus(RoomStatus.ENDED);
         room.setHasReVoted(false);
+        room.setCurrentRound(0);
+        room.setTextCardAssigned(false);
+        room.setPictureCardAssigned(false);
 
         // 플레이어 상태 초기화
-        room.getPlayers().values().forEach(this::resetPlayerState);
+        room.getPlayers().values().forEach(player -> {
+            resetPlayerState(player);
+            player.setReady(false);
+        });
 
         // 투표 데이터 초기화
         votes.remove(room.getRoomId());

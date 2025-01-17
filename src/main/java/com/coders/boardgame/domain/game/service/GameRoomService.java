@@ -1,6 +1,7 @@
 package com.coders.boardgame.domain.game.service;
 
 import com.coders.boardgame.domain.game.dto.*;
+import com.coders.boardgame.domain.game.enums.RoomStatus;
 import com.coders.boardgame.domain.game.event.GameEndedEvent;
 import com.coders.boardgame.exception.GameRoomException;
 import lombok.RequiredArgsConstructor;
@@ -63,9 +64,11 @@ public class GameRoomService {
                 .playerId(userId)
                 .playerInfo(requestDto.getHostInfo())
                 .surveyScore(requestDto.getSurveyScore())
+                .usageTime(0)
                 .sequenceNumber(0)
                 .collectedPuzzlePieces(0)
                 .isSpeaking(false)
+                .isReady(true)
                 .build();
 
         // 방 정보 생성
@@ -79,7 +82,7 @@ public class GameRoomService {
                 .currentTurn(0)
                 .totalPuzzlePieces(requestDto.getTotalPlayers() == 3 ? 10 : 13)
                 .currentPuzzlePieces(0)
-                .roomStatus(GameRoomDto.RoomStatus.WAITING)
+                .roomStatus(RoomStatus.WAITING)
                 .build();
 
         // 생성된 방 저장
@@ -143,6 +146,7 @@ public class GameRoomService {
                         .totalPlayers(room.getTotalPlayers())
                         .hostId(room.getHostId())
                         .players(new ArrayList<>(room.getPlayers().values()))
+                        .roomStatus(RoomStatus.WAITING)
                         .build();
 
                 // 클라이언트에 초기 연결 상태 전송
@@ -240,6 +244,7 @@ public class GameRoomService {
                 .usageTime(0)
                 .surveyScore(joinRoomRequestDto.getSurveyScore())
                 .isSpeaking(false)
+                .isReady(true)
                 .build();
 
         // 플레이어 리스트 업데이트에 동기화 적용
@@ -254,6 +259,7 @@ public class GameRoomService {
                 .totalPlayers(room.getTotalPlayers())
                 .hostId(room.getHostId())
                 .players(new ArrayList<>(room.getPlayers().values()))
+                .roomStatus(room.getRoomStatus())
                 .build();
     }
 
@@ -280,31 +286,32 @@ public class GameRoomService {
         // 현재 플레이어 수 감소
         int currentPlayers = room.getCurrentPlayers().decrementAndGet();// 현재 플레이어수 감소
 
-        if (room.getRoomStatus() == GameRoomDto.RoomStatus.IN_GAME) {
+        if (isIntentional){
+            gameSseService.disconnectPlayer(roomId, "player-left", playerId, false);
+        }
+
+        if (room.getRoomStatus() == RoomStatus.IN_GAME) {
             log.info("IN_GAME 상태에서 플레이어 {}가 나갔으므로 게임 종료 진행", playerId);
             String reason = removedPlayer.getPlayerInfo().getName() + "가 나갔습니다.";
             endGameAndMoveToWaitingRoom(roomId, reason);
 
-        } else if (room.getRoomStatus() == GameRoomDto.RoomStatus.WAITING) {
+        } else if (room.getRoomStatus() == RoomStatus.WAITING) {
             // 방장이 나간 경우 새로운 방장 무작위로 선정
             if (room.getHostId().equals(playerId) && currentPlayers > 0) {
                 assignNewHost(room, true);
             }
             // 방 상태 최신화 전송
             if (currentPlayers > 0) {
-                gameSseService.sendRoomEventToOthers(room.getRoomId(), "player-left", playerId, playerId);
+                gameSseService.sendRoomEvent(room.getRoomId(), "player-left", playerId);
             } else {
                 deleteRoom(roomId); // 방에 아무도 없으면 삭제
             }
-        } else if (room.getRoomStatus() == GameRoomDto.RoomStatus.ENDED) {
+        } else if (room.getRoomStatus() == RoomStatus.ENDED) {
             if (currentPlayers <=0){
                 deleteRoom(roomId);
             }
         }
 
-        if (isIntentional){
-            gameSseService.disconnectPlayer(roomId, "player-left", playerId, false);
-        }
         // SSE 연결 해제
     }
 
@@ -327,9 +334,9 @@ public class GameRoomService {
         GameRoomDto room = gameRooms.get(roomId);
 
         // 게임이 이미 종료 된 경우 중복 실행 방지
-        if (room.getRoomStatus() != GameRoomDto.RoomStatus.ENDED) {
+        if (room.getRoomStatus() != RoomStatus.ENDED) {
             // 방상태 ended로 변환
-            room.setRoomStatus(GameRoomDto.RoomStatus.ENDED);
+            room.setRoomStatus(RoomStatus.ENDED);
 
             Map<String, String> eventData = Map.of(
                     "reason", reason,

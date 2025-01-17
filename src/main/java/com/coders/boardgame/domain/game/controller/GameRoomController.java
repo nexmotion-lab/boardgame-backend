@@ -52,6 +52,7 @@ public class GameRoomController {
                 .totalPlayers(room.getTotalPlayers())
                 .hostId(room.getHostId())
                 .players(new ArrayList<>(room.getPlayers().values()))
+                .roomStatus(room.getRoomStatus())
                 .build();
         return ResponseEntity.ok(roomDto);
     }
