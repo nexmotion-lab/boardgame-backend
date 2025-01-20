@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class GameSseService {
 
-    private static final Long SSE_SESSION_TIMEOUT = 60 * 10 * 1000L;
+    private static final Long SSE_SESSION_TIMEOUT = 60 * 30 * 1000L;
     private final Map<String, Map<Long, SseEmitter>> sseEmitters = new ConcurrentHashMap<>();
     private final ApplicationEventPublisher eventPublisher; // 이벤트 발행기 주입
 
@@ -41,7 +41,8 @@ public class GameSseService {
             log.info("플레이어 재연결: roomId={}, playerId={}", roomId, playerId);
         }
 
-        SseEmitter emitter = new SseEmitter(SSE_SESSION_TIMEOUT); // 타임아웃 10분
+        log.info("플레이어{} : 방과 sse 연결 성공", playerId);
+        SseEmitter emitter = new SseEmitter(SSE_SESSION_TIMEOUT); // 타임아웃 30분
         roomEmitters.put(playerId, emitter);
 
         emitter.onCompletion(() -> handleDisconnection(roomId, "completion", playerId, true));

@@ -117,10 +117,32 @@ public class GameRoomService {
     public SseEmitter connectToRoom(String roomId, Long playerId) {
         GameRoomDto room = getRoom(roomId);
 
-        // 게임 SSE 서비스에서 연결 시도 및 재연결 여부 확인
-        ConnectionResult connectionResult = gameSseService.connectToRoom(roomId, playerId);
-        SseEmitter emitter = connectionResult.emitter();
-        boolean isReconnecting = connectionResult.isReconnecting();
+        boolean isInRoom = room.getPlayers().containsKey(playerId);
+
+        SseEmitter emitter;
+        boolean isReconnecting;
+        if (!isInRoom) {
+            // 방에 없는 사용자
+            emitter = new SseEmitter(3000L);
+            isReconnecting = false;
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("not-in-room")
+                        .data("방에 없습니다. 다시 입장요청하세요")
+                );
+            } catch (IOException e) {
+                log.error("not-in-room 이벤트 전송 실패: roomId={}, playerId={}, error={}",
+                        roomId, playerId, e.getMessage());
+                emitter.completeWithError(e);
+            }
+            emitter.complete();
+            return emitter;
+        } else {
+            // 게임 SSE 서비스에서 연결 시도 및 재연결 여부 확인
+            ConnectionResult connectionResult = gameSseService.connectToRoom(roomId, playerId);
+            emitter = connectionResult.emitter();
+            isReconnecting = connectionResult.isReconnecting();
+        }
 
         // 방 상태에 따른 처리
         switch (room.getRoomStatus()){
@@ -129,7 +151,7 @@ public class GameRoomService {
                 try {
                     emitter.send(SseEmitter.event()
                             .name("game-ended")
-                            .data("게임이 종료되었습니다. 대기방으로 이동합니다.")
+                            .data("게임이 이미 종료됨")
                     );
                 } catch (IOException e) {
                     log.error("게임 종료 알림 전송 실패: roomId={}, playerId={}, error={}", roomId, playerId, e.getMessage());
@@ -146,7 +168,7 @@ public class GameRoomService {
                         .totalPlayers(room.getTotalPlayers())
                         .hostId(room.getHostId())
                         .players(new ArrayList<>(room.getPlayers().values()))
-                        .roomStatus(RoomStatus.WAITING)
+                        .roomStatus(room.getRoomStatus())
                         .build();
 
                 // 클라이언트에 초기 연결 상태 전송
@@ -224,6 +246,10 @@ public class GameRoomService {
     public WaitingRoomDto joinRoom(String roomId, Long userId, JoinRoomRequestDto joinRoomRequestDto){
         GameRoomDto room = getRoom(roomId);
 
+        if (room.getRoomStatus().equals(RoomStatus.IN_GAME) || room.getRoomStatus().equals(RoomStatus.ENDED)){
+            throw new GameRoomException("게임이 시작되거나 종료중입니다. 잠시후 다시 시도해주세요", HttpStatus.FORBIDDEN);
+        }
+
         // 플레이어가 이미 존재하는지 확인
         if (room.getPlayers().containsKey(userId)) {
             throw new GameRoomException(userId + " 이미 방에 있습니다.", HttpStatus.FORBIDDEN);
@@ -291,9 +317,7 @@ public class GameRoomService {
         }
 
         if (room.getRoomStatus() == RoomStatus.IN_GAME) {
-            log.info("IN_GAME 상태에서 플레이어 {}가 나갔으므로 게임 종료 진행", playerId);
-            String reason = removedPlayer.getPlayerInfo().getName() + "가 나갔습니다.";
-            endGameAndMoveToWaitingRoom(roomId, reason);
+            InterruptGameAndMoveToWaitingRoom(roomId, removedPlayer);
 
         } else if (room.getRoomStatus() == RoomStatus.WAITING) {
             // 방장이 나간 경우 새로운 방장 무작위로 선정
@@ -330,29 +354,29 @@ public class GameRoomService {
      * * 게임 종료 및 모든 플레이어를 대기방으로 이동
      * @param roomId
      */
-    public void endGameAndMoveToWaitingRoom(String roomId, String reason){
+    public void InterruptGameAndMoveToWaitingRoom(String roomId, PlayerDto player){
         GameRoomDto room = gameRooms.get(roomId);
 
-        // 게임이 이미 종료 된 경우 중복 실행 방지
-        if (room.getRoomStatus() != RoomStatus.ENDED) {
-            // 방상태 ended로 변환
-            room.setRoomStatus(RoomStatus.ENDED);
+        log.info("IN_GAME 상태에서 플레이어 {}가 나갔으므로 게임 종료 진행", player.getPlayerId());
+        String reason = player.getPlayerInfo().getName() + "가 나갔습니다.";
 
-            Map<String, String> eventData = Map.of(
-                    "reason", reason,
-                    "data", "게임이 종료되어 잠시 후 대기방으로 이동합니다"
-            );
+        // 방상태 ended로 변환
+        room.setRoomStatus(RoomStatus.WAITING);
 
-            // 모든 플레이어에게 게임 종료 이벤트 전송
-            gameSseService.sendRoomEvent(roomId, "game-ended", eventData);
+        Map<String, String> eventData = Map.of(
+                "reason", reason,
+                "data", "게임이 리셋되어 대기방으로 이동 필요"
+        );
 
-            // gameEvent 발행
-            applicationEventPublisher.publishEvent(new GameEndedEvent(this, roomId));
+        // 모든 플레이어에게 게임 종료 이벤트 전송
+        gameSseService.sendRoomEvent(roomId, "game-reset", eventData);
 
-            log.info("게임이 종료되었습니다: roomId={}", roomId);
-        } else {
-            log.info("이미 게임이 종료되었습니다. roomId={}", roomId);
-        }
+        // gameEvent 발행
+        applicationEventPublisher.publishEvent(new GameEndedEvent(this, roomId));
+
+
+        log.info("게임이 종료되었습니다: roomId={}", roomId);
+
     }
 
     /**

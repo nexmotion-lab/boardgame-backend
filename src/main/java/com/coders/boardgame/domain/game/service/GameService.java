@@ -296,14 +296,7 @@ public class GameService {
         // 투표 데이터 초기화
         votes.remove(roomId);
 
-        // 방 상태를 WAITING으로 변경
-        room.setRoomStatus(RoomStatus.WAITING);
-
         gameRoomService.reassignHostIfNeed(roomId);
-
-        // 초기화 완료 이벤트 전송
-        gameSseService.sendRoomEvent(roomId, "game-reset", "게임이 초기화되어 대기방으로 이동");
-
 
         log.info("게임이 초기화되었습니다: roomId={}", roomId);
     }
