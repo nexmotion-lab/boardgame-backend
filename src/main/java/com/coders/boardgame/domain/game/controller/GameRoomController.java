@@ -102,7 +102,7 @@ public class GameRoomController {
      */
     @GetMapping(value = "/connect/{roomId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter connectToRoom(@PathVariable String roomId, HttpServletRequest request){
+        log.info("커넥 컨트롤러 도달");
         return gameRoomService.connectToRoom(roomId, sessionService.getUserIdFromSession(request));
-
     }
 }

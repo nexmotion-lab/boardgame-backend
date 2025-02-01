@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class GameSseService {
 
-    private static final Long SSE_SESSION_TIMEOUT = 60 * 30 * 1000L;
+    private static final Long SSE_SESSION_TIMEOUT = 60 * 180 * 1000L;
     private final Map<String, Map<Long, SseEmitter>> sseEmitters = new ConcurrentHashMap<>();
     private final ApplicationEventPublisher eventPublisher; // 이벤트 발행기 주입
 

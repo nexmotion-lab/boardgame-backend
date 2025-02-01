@@ -119,6 +119,8 @@ public class GameRoomService {
 
         boolean isInRoom = room.getPlayers().containsKey(playerId);
 
+        log.info("커넥 시작");
+
         SseEmitter emitter;
         boolean isReconnecting;
         if (!isInRoom) {

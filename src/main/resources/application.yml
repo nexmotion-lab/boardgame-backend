@@ -12,7 +12,15 @@ spring:
       hibernate:
         format_sql: true
 
+
+
+
 server:
+#  ssl:
+#    enabled: true
+#    key-store: classpath:ssl/suhat.kr.pfx
+#    key-store-type: PKCS12
+#    key-store-password: ""
   port: 8443
   servlet:
     session:
@@ -25,6 +33,7 @@ kakao:
 
 frontend:
   url: "http://10.0.2.2:8100" # 프론트엔드 URL
+#  url: "https://suhat.kr" # 프론트엔드 URL
 
 logging:
   level:

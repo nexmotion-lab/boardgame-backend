@@ -35,6 +35,8 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        logger.info("요청 쿠키:" + Arrays.toString(request.getCookies()));
+
         // 세션 확인
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY) == null) {
@@ -54,7 +56,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             throw new CustomSessionAuthenticationException("사용자 ID가 없습니다.");
         }
 
-        log.info("Authenticated request to '{}'. Proceeding with filter chain.", requestURI);
+        log.info("인증 절차 완료 'url: {}'. Proceeding with filter chain.", requestURI);
         filterChain.doFilter(request, response);
     }
 }

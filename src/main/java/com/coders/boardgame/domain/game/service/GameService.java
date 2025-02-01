@@ -315,8 +315,6 @@ public class GameService {
             throw new GameRoomException("플레이어가 방에 존재하지 않습니다.", HttpStatus.NOT_FOUND);
         }
 
-        // 플레이어 준비 상태 설정
-        player.setReady(true);
         log.info("플레이어가 다시하기를 요청했습니다: playerId={}, roomId={}", playerId, roomId);
 
         // 게임 상태 확인 및 처리
@@ -324,6 +322,9 @@ public class GameService {
             room.setRoomStatus(RoomStatus.WAITING);
             log.info("게임 상태를 대기중으로 변경 했습니다.");
         }
+
+        // 플레이어 준비 상태 설정
+        player.setReady(true);
 
         Map<String, Object> eventData = Map.of(
                 "playerId", playerId,
@@ -543,6 +544,8 @@ public class GameService {
 
         // 투표 데이터 초기화
         votes.remove(room.getRoomId());
+
+        gameSseService.removeEmitters(room.getRoomId());
 
         log.info("방 상태 초기화 완료: roomId={}", room.getRoomId());
     }
