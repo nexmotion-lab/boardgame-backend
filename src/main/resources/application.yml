@@ -16,11 +16,11 @@ spring:
 
 
 server:
-#  ssl:
-#    enabled: true
-#    key-store: classpath:ssl/suhat.kr.pfx
-#    key-store-type: PKCS12
-#    key-store-password: ""
+  ssl:
+    enabled: true
+    key-store: classpath:ssl/suhat.kr.pfx
+    key-store-type: PKCS12
+    key-store-password: ""
   port: 8443
   servlet:
     session:
@@ -32,9 +32,10 @@ kakao:
   api-key: "06b148d53b401fd4eb0188baad142f45"
 
 frontend:
-  url: "http://10.0.2.2:8100" # 프론트엔드 URL
-#  url: "https://suhat.kr" # 프론트엔드 URL
+#  url: "http://localhost:8100" # 프론트엔드 URL
+  url: "https://suhat.kr" # 프론트엔드 URL
 
 logging:
   level:
+    org.springframework.web: DEBUG
     org.springframework.security: DEBUG

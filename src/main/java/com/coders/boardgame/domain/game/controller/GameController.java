@@ -2,14 +2,10 @@ package com.coders.boardgame.domain.game.controller;
 
 import com.coders.boardgame.domain.game.dto.*;
 import com.coders.boardgame.domain.user.service.SessionService;
-import com.coders.boardgame.exception.GameRoomException;
 import com.coders.boardgame.domain.game.service.GameService;
-import com.coders.boardgame.exception.auth.CustomSessionAuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
