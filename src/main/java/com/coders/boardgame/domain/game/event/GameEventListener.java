@@ -50,17 +50,16 @@ public class GameEventListener {
         String roomId = event.getRoomId();
         log.info("GameEndedEvent 수신: roomId={}", roomId);
 
-        // 게임 상태 초기화 및 리셋
-        gameService.resetGame(roomId);
-
-        GameRoomDto room;
         // 이미 방이 삭제된 경우에 대해서
         try {
-            room = gameRoomService.getRoom(roomId);
+            GameRoomDto room = gameRoomService.getRoom(roomId);
         } catch (GameRoomException e){
             log.warn("이미 방이 삭제되었거나 존재하지 않습니다. {}", e.getMessage());
             return;
         }
+
+        // 게임 상태 초기화 및 리셋
+        gameService.resetGame(roomId);
 
     }
 }

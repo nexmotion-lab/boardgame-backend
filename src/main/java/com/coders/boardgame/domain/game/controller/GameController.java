@@ -2,14 +2,10 @@ package com.coders.boardgame.domain.game.controller;
 
 import com.coders.boardgame.domain.game.dto.*;
 import com.coders.boardgame.domain.user.service.SessionService;
-import com.coders.boardgame.exception.GameRoomException;
 import com.coders.boardgame.domain.game.service.GameService;
-import com.coders.boardgame.exception.auth.CustomSessionAuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +23,8 @@ public class GameController {
 
     /**
      * 게임 상태 조희 API
-     * @param roomId 방 정보
+     *
+     * @param roomId  방 정보
      * @param request 클라이언트 요청 객체
      * @return
      */
@@ -42,6 +39,7 @@ public class GameController {
 
     /**
      * 게임 중 타이머 시간 동기화를 위한 API
+     *
      * @param roomId
      * @return
      */
@@ -54,7 +52,8 @@ public class GameController {
 
     /**
      * 게임 시작 API
-     * @param roomId 방 ID
+     *
+     * @param roomId  방 ID
      * @param request 클라이언트 요청 객체
      * @return
      */
@@ -69,6 +68,7 @@ public class GameController {
 
     /**
      * 사용 시간 입력 API
+     *
      * @param roomId    룸 ID
      * @param usageTime 스마트폰 사용시간
      * @param request   요청
@@ -87,6 +87,7 @@ public class GameController {
     /**
      * 사용자 순서 배정 이후
      * 게임 라운드 2를 시작하기 위한 API
+     *
      * @param roomId
      * @param request
      * @return
@@ -104,6 +105,7 @@ public class GameController {
     /**
      * 말하기 세션이 시작하기 위해
      * 랜덤으로 카드를 부여를 처리하기 위한 API
+     *
      * @param roomId   룸 id
      * @param cardType 카드타입
      * @param maxId    보유한 카드의 최대 id
@@ -120,6 +122,7 @@ public class GameController {
 
     /**
      * 말하기 세션중 시간 연장을 처리하는 API
+     *
      * @param roomId         방Id
      * @param additionalTime 추가할 시간
      * @return
@@ -134,30 +137,47 @@ public class GameController {
 
     /**
      * 종료된 말하기 세션을 처리하는 API
+     *
      * @param roomId
      * @return
      */
     @PostMapping("/{roomId}/speaking/end")
-    public ResponseEntity<String> endSpeaking(@PathVariable String roomId){
+    public ResponseEntity<String> endSpeaking(@PathVariable String roomId) {
         gameService.endSpeaking(roomId);
         return ResponseEntity.ok("말하기가 종료되었습니다.");
     }
 
     /**
      * 투표 API
-     * @param roomId 방 ID
-     * @param vote 투표 내용
+     *
+     * @param roomId  방 ID
+     * @param voteRequestDto    투표 내용
      * @param request 클라이언트 요청 객체
      * @return 투표 성공 메세지
      */
     @PostMapping("/{roomId}/votes")
     public ResponseEntity<String> castVote(
             @PathVariable String roomId,
-            @RequestParam String vote,
-            HttpServletRequest request){
+            @RequestBody VoteRequestDto voteRequestDto,
+            HttpServletRequest request) {
         Long userId = sessionService.getUserIdFromSession(request);
+
+        String vote = voteRequestDto.getVote();
         gameService.castVote(roomId, userId, vote);
 
         return ResponseEntity.ok("투표 완료했습니다.");
+    }
+
+    /**
+     * 게임 다시하기 요청
+     * @param roomId
+     * @param request
+     * @return
+     */
+    @PostMapping("/{roomId}/retry")
+    public ResponseEntity<String> retryGame(@PathVariable String roomId, HttpServletRequest request) {
+        Long userId = sessionService.getUserIdFromSession(request);
+        gameService.retryGame(roomId, userId);
+        return ResponseEntity.ok("다시하기 완료");
     }
 }

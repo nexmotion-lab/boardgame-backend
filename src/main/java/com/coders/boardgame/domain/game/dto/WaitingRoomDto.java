@@ -1,5 +1,6 @@
 package com.coders.boardgame.domain.game.dto;
 
+import com.coders.boardgame.domain.game.enums.RoomStatus;
 import lombok.*;
 
 import java.util.List;
@@ -16,4 +17,5 @@ public class WaitingRoomDto {
     private int totalPlayers;           // 최대 인원
     private List<PlayerDto> players;    // 참가자 정보 리스트
     private Long hostId; // 호스트 id
+    private RoomStatus roomStatus; // 방상태 (WAITING, IN_GAME, ENDED)
 }

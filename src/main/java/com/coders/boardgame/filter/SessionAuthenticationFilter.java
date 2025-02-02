@@ -1,9 +1,10 @@
 package com.coders.boardgame.filter;
 
-import com.coders.boardgame.exception.auth.CustomSessionAuthenticationException;
+import com.coders.boardgame.exception.CustomAuthenticationEntryPoint;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -21,6 +22,7 @@ import java.util.Arrays;
 public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
     private final String[] excludedPaths;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -35,11 +37,21 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        logger.info("요청 쿠키:" + Arrays.toString(request.getCookies()));
+
         // 세션 확인
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY) == null) {
             log.warn("Unauthenticated request to '{}'. Returning 401.", requestURI);
-            throw new CustomSessionAuthenticationException("세션이 만료되었거나 존재하지 않습니다.");
+            // 인증 실패 시 SecurtiyContext 지우고
+            SecurityContextHolder.clearContext();
+
+            // 시큐리티 표준 AuthenticationException 구현체로 하나 익명 클래스를 만듬
+            AuthenticationException authException = new AuthenticationException("세션이 만료되었거나 존재하지 않습니다.") { };
+
+            // EntryPoint를 직접 호출 -> 여기서 401 + 바디 생성
+            customAuthenticationEntryPoint.commence(request, response, authException);
+            return;
         }
 
 
@@ -51,10 +63,13 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
         Long userId = (Long) session.getAttribute("userId");
         if (userId == null) {
             log.warn("요청 URI '{}'에서 세션에 userId가 없습니다. 401 응답을 반환합니다.", requestURI);
-            throw new CustomSessionAuthenticationException("사용자 ID가 없습니다.");
+            SecurityContextHolder.clearContext();
+            AuthenticationException authException = new AuthenticationException("사용자 ID가 없습니다.") { };
+            customAuthenticationEntryPoint.commence(request, response, authException);
+            return;
         }
 
-        log.info("Authenticated request to '{}'. Proceeding with filter chain.", requestURI);
+        log.info("인증 절차 완료 'url: {}'. Proceeding with filter chain.", requestURI);
         filterChain.doFilter(request, response);
     }
 }

@@ -14,4 +14,5 @@ public class PlayerDto {
     private boolean isSpeaking; // 현재 말하기 진행 여부
     private int usageTime; // 스마트폰 이용시간(분)
     private int surveyScore; // 이용습관 진단지 점수
+    private boolean isReady; // 준비완료 했는지 확인
 }

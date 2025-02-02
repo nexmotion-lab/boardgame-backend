@@ -1,23 +1,23 @@
 package com.coders.boardgame.config;
 
-import jakarta.servlet.http.Cookie;
-import org.springframework.boot.web.servlet.ServletContextInitializer;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.session.web.http.CookieSerializer;
+import org.springframework.session.web.http.DefaultCookieSerializer;
 
 @Configuration
 public class CookieConfig {
-
     @Bean
-    public ServletContextInitializer servletContextInitializer() {
-        return servletContext -> {
-            Cookie cookie = new Cookie("JSESSIONID", null);
-            cookie.setHttpOnly(true);
-//            cookie.setSecure(false); // HTTPS 환경
-            cookie.setSecure(true); // HTTPS 환경
-            cookie.setPath("/");
-            cookie.setAttribute("SameSite", "Lax");
-        };
+    public CookieSerializer cookieSerializer() {
+        DefaultCookieSerializer serializer = new DefaultCookieSerializer();
+        serializer.setCookieName("JSESSIONID");
+        serializer.setUseHttpOnlyCookie(true);
+        serializer.setDomainName("suhat.kr");
+        serializer.setSameSite("None"); // CORS 요청 허용
+//        serializer.setUseSecureCookie(false);
+        serializer.setUseSecureCookie(true);
+        serializer.setCookiePath("/");
+        return serializer;
     }
-
 }

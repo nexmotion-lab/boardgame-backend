@@ -1,6 +1,5 @@
 package com.coders.boardgame.exception;
 
-import com.coders.boardgame.exception.auth.CustomSessionAuthenticationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -53,25 +52,10 @@ public class GlobalExceptionHandler {
         log.warn("Authentication failed: {}", ex.getMessage());
 
         ProblemDetail problemDetail = createProblemDetail(
-                "Authentication Error",
+                "권한 에러",
                 HttpStatus.UNAUTHORIZED,
                 ex.getMessage(),
                 "40101",
-                request
-        );
-
-        return new ResponseEntity<>(problemDetail, HttpStatus.UNAUTHORIZED);
-    }
-
-    @ExceptionHandler(CustomSessionAuthenticationException.class)
-    public ResponseEntity<ProblemDetail> handleSessionAuthenticationException(CustomSessionAuthenticationException ex, WebRequest request) {
-        log.warn("Session authentication error: {}", ex.getReason());
-
-        ProblemDetail problemDetail = createProblemDetail(
-                "Session Error",
-                HttpStatus.UNAUTHORIZED,
-                ex.getReason(),
-                "40102",
                 request
         );
 

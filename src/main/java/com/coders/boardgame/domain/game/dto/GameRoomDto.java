@@ -1,5 +1,6 @@
 package com.coders.boardgame.domain.game.dto;
 
+import com.coders.boardgame.domain.game.enums.RoomStatus;
 import lombok.*;
 
 import java.util.Map;
@@ -31,9 +32,5 @@ public class GameRoomDto {
     private boolean isTextCardAssigned = false;
     private boolean hasReVoted = false;
 
-    public enum RoomStatus {
-        WAITING,
-        IN_GAME,
-        ENDED
-    }
+
 }

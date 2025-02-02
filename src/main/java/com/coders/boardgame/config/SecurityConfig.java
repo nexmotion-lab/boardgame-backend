@@ -38,9 +38,9 @@ public class SecurityConfig {
         };
 
         http
-//                .requiresChannel(channel -> channel
-//                        .anyRequest().requiresSecure() // 모든 요청을 HTTPS로 강제 리다이렉트
-//                )
+                .requiresChannel(channel -> channel
+                        .anyRequest().requiresSecure() // 모든 요청을 HTTPS로 강제 리다이렉트
+                )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // CORS 설정
                 .csrf(AbstractHttpConfigurer::disable)                              //  CSRF 보호 비활성화 (API 사용 시 보통 비활성화)
                 .authorizeHttpRequests(authorize -> authorize
@@ -52,7 +52,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)       // 세션 정책 설정
                 )
-                .addFilterBefore(new SessionAuthenticationFilter(permitted), UsernamePasswordAuthenticationFilter.class); // 세션 인증 필터
+                .addFilterBefore(new SessionAuthenticationFilter(permitted, customAuthenticationEntryPoint), UsernamePasswordAuthenticationFilter.class); // 세션 인증 필터
 
         return http.build();
     }
@@ -60,7 +60,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(List.of(frontendUrl));
+        corsConfiguration.setAllowedOrigins(List.of(frontendUrl, "https://localhost"));
         corsConfiguration.setAllowedMethods(List.of("GET", "POST", "DELETE", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
         corsConfiguration.setAllowCredentials(true);
@@ -69,5 +69,4 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", corsConfiguration);
         return source;
     }
-
 }
