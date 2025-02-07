@@ -94,4 +94,14 @@ public class GameRoomController {
 
     }
 
+    @PostMapping("/{roomId}/ping")
+    public ResponseEntity<?> ping(
+            @PathVariable String roomId,
+            HttpServletRequest request
+    ){
+        Long userId = sessionService.getUserIdFromSession(request);
+        gameRoomService.updatePingTime(roomId, userId);
+        return ResponseEntity.ok().body("pong");
+    }
+
 }

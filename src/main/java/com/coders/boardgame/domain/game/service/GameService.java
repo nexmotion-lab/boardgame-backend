@@ -67,6 +67,12 @@ public class GameService {
         log.info("게임 시작됨: roomId={}, hostId={}", roomId, hostId);
     }
 
+    /**
+     * 게임 정보 반환
+     * @param roomId
+     * @param playerId
+     * @return
+     */
     public GameStateDto getGameState(String roomId, Long playerId) {
         GameRoomDto room = gameRoomService.getRoom(roomId);
 
@@ -323,14 +329,9 @@ public class GameService {
             log.info("게임 상태를 대기중으로 변경 했습니다.");
         }
 
-        // 플레이어 준비 상태 설정
-        player.setReady(true);
+        // 게임 재시작 요청 시 이떄 연결 해제
+        gameSseService.disconnectPlayer(roomId, "reConnectToRetry", playerId, false);
 
-        Map<String, Object> eventData = Map.of(
-                "playerId", playerId,
-                "isReady", true
-        );
-        gameSseService.sendRoomEventToOthers(roomId, "player-ready", eventData, playerId);
     }
 
     /**
@@ -537,15 +538,13 @@ public class GameService {
         room.setPictureCardAssigned(false);
 
         // 플레이어 상태 초기화
-        room.getPlayers().values().forEach(player -> {
-            resetPlayerState(player);
-            player.setReady(false);
+        room.getPlayers().values().forEach(p -> {
+            p.setReady(false);
+            resetPlayerState(p);
         });
 
         // 투표 데이터 초기화
         votes.remove(room.getRoomId());
-
-        gameSseService.removeEmitters(room.getRoomId());
 
         log.info("방 상태 초기화 완료: roomId={}", room.getRoomId());
     }

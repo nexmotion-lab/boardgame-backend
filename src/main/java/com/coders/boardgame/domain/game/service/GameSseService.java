@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class GameSseService {
 
-    private static final Long SSE_SESSION_TIMEOUT = 60 * 180 * 1000L;
+    private static final Long SSE_SESSION_TIMEOUT = 60 * 120 * 1000L;
     private final Map<String, Map<Long, SseEmitter>> sseEmitters = new ConcurrentHashMap<>();
     private final ApplicationEventPublisher eventPublisher; // 이벤트 발행기 주입
 
@@ -41,13 +41,16 @@ public class GameSseService {
             log.info("플레이어 재연결: roomId={}, playerId={}", roomId, playerId);
         }
 
-        log.info("플레이어{} : 방과 sse 연결 성공", playerId);
-        SseEmitter emitter = new SseEmitter(SSE_SESSION_TIMEOUT); // 타임아웃 30분
+        SseEmitter emitter = new SseEmitter(SSE_SESSION_TIMEOUT); // 타임아웃 2시간
         roomEmitters.put(playerId, emitter);
 
-        emitter.onCompletion(() -> handleDisconnection(roomId, "completion", playerId, true));
+        emitter.onCompletion(() -> handleDisconnection(roomId, "completion", playerId, false));
         emitter.onTimeout(() -> handleDisconnection(roomId, "timeout", playerId, true));
-        emitter.onError(e -> handleDisconnection(roomId, "error", playerId, true));
+        emitter.onError(e -> {handleDisconnection(roomId, "error", playerId, true);
+            log.error(e.getMessage());
+        });
+
+        log.info("플레이어{} : 방과 sse 연결 성공", playerId);
 
         return new ConnectionResult(emitter, isReconnecting);
     }
@@ -145,7 +148,7 @@ public class GameSseService {
      * @param playerId
      */
     public void disconnectPlayer(String roomId, String reason, Long playerId, boolean isUnexpected){
-        handleDisconnection(roomId, reason, playerId, false); // 의도적인 연결 종료
+        handleDisconnection(roomId, reason, playerId, isUnexpected); // 의도적인 연결 종료
     }
 
     /**

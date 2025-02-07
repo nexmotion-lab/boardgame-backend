@@ -12,11 +12,11 @@ public class CookieConfig {
     public CookieSerializer cookieSerializer() {
         DefaultCookieSerializer serializer = new DefaultCookieSerializer();
         serializer.setCookieName("JSESSIONID");
-        serializer.setUseHttpOnlyCookie(true);
+//        serializer.setUseHttpOnlyCookie(true);
         serializer.setDomainName("suhat.kr");
         serializer.setSameSite("None"); // CORS 요청 허용
-//        serializer.setUseSecureCookie(false);
-        serializer.setUseSecureCookie(true);
+        serializer.setUseSecureCookie(false);
+//        serializer.setUseSecureCookie(true);
         serializer.setCookiePath("/");
         return serializer;
     }
