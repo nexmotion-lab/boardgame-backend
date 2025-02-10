@@ -22,6 +22,7 @@ public class UserController {
 
     @PostMapping
     public ResponseEntity<?> signUp(@RequestBody UserDto userDto, HttpServletRequest request) {
+
         try {
             // 1. UserService를 통해 사용자 등록 및 세션 생성
             String sessionId = userService.signUp(userDto, request);

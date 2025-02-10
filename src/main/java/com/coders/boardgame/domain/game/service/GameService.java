@@ -3,6 +3,7 @@ package com.coders.boardgame.domain.game.service;
 import com.coders.boardgame.domain.game.dto.GameRoomDto;
 import com.coders.boardgame.domain.game.dto.GameStateDto;
 import com.coders.boardgame.domain.game.dto.PlayerDto;
+import com.coders.boardgame.domain.game.enums.GamePhase;
 import com.coders.boardgame.domain.game.enums.RoomStatus;
 import com.coders.boardgame.exception.GameRoomException;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +68,12 @@ public class GameService {
         log.info("게임 시작됨: roomId={}, hostId={}", roomId, hostId);
     }
 
+    /**
+     * 게임 정보 반환
+     * @param roomId
+     * @param playerId
+     * @return
+     */
     public GameStateDto getGameState(String roomId, Long playerId) {
         GameRoomDto room = gameRoomService.getRoom(roomId);
 
@@ -84,6 +91,7 @@ public class GameService {
                 .currentPuzzlePieces(room.getCurrentPuzzlePieces())
                 .currentTurn(room.getCurrentTurn())
                 .currentRound(room.getCurrentRound())
+                .currentPhase(room.getCurrentPhase())
                 .players(new ArrayList<>(room.getPlayers().values()))
                 .build();
 
@@ -165,6 +173,7 @@ public class GameService {
 
         // 라운드 상태 업데이트
         room.setCurrentRound(roundNumber);
+        room.setCurrentPhase(GamePhase.DISCUSSION);
 
         // 첫 번쨰 순번인 플레이어 찾기
         PlayerDto speaker = room.getPlayers().values().stream()
@@ -178,7 +187,8 @@ public class GameService {
 
         Map<String, Object> eventData = Map.of(
                 "round", roundNumber,
-                "speakerId", speaker.getPlayerId()
+                "speakerId", speaker.getPlayerId(),
+                "currentPhase", room.getCurrentPhase()
         );
 
         gameSseService.sendRoomEvent(roomId, "round-" + roundNumber + "-started", eventData);
@@ -254,6 +264,7 @@ public class GameService {
      */
     public void endSpeaking(String roomId) {
         GameRoomDto room = gameRoomService.getRoom(roomId);
+        room.setCurrentPhase(GamePhase.VOTING);
         gameSseService.sendRoomEvent(room.getRoomId(), "speaking-end", "말하기가 종료되었습니다.");
     }
 
@@ -287,8 +298,10 @@ public class GameService {
         // 게임 상태 초기화
         room.setCurrentRound(0);
         room.setCurrentTurn(0);
+        room.setCurrentPhase(GamePhase.NONE);
         room.setCurrentPuzzlePieces(0);
         room.setHasReVoted(false);
+
 
         // 플레이어 상태 초기화
         room.getPlayers().values().forEach(this::resetPlayerState);
@@ -323,14 +336,9 @@ public class GameService {
             log.info("게임 상태를 대기중으로 변경 했습니다.");
         }
 
-        // 플레이어 준비 상태 설정
-        player.setReady(true);
+        // 게임 재시작 요청 시 이떄 연결 해제
+        gameSseService.disconnectPlayer(roomId, "reConnectToRetry", playerId, false);
 
-        Map<String, Object> eventData = Map.of(
-                "playerId", playerId,
-                "isReady", true
-        );
-        gameSseService.sendRoomEventToOthers(roomId, "player-ready", eventData, playerId);
     }
 
     /**
@@ -475,6 +483,7 @@ public class GameService {
         // 현재 턴 증가 (순환)
         int nextTurn = (room.getCurrentTurn() % room.getTotalPlayers()) + 1;
         room.setCurrentTurn(nextTurn);
+        room.setCurrentPhase(GamePhase.DISCUSSION);
 
         // 기존 발화자의 상태를 초기화
         room.getPlayers().values().stream()
@@ -531,21 +540,20 @@ public class GameService {
         room.setCurrentTurn(0); //
         room.setCurrentPuzzlePieces(0);
         room.setRoomStatus(RoomStatus.ENDED);
+        room.setCurrentPhase(GamePhase.NONE);
         room.setHasReVoted(false);
         room.setCurrentRound(0);
         room.setTextCardAssigned(false);
         room.setPictureCardAssigned(false);
 
         // 플레이어 상태 초기화
-        room.getPlayers().values().forEach(player -> {
-            resetPlayerState(player);
-            player.setReady(false);
+        room.getPlayers().values().forEach(p -> {
+            p.setReady(false);
+            resetPlayerState(p);
         });
 
         // 투표 데이터 초기화
         votes.remove(room.getRoomId());
-
-        gameSseService.removeEmitters(room.getRoomId());
 
         log.info("방 상태 초기화 완료: roomId={}", room.getRoomId());
     }

@@ -67,8 +67,9 @@ public class GameRoomService {
                 .usageTime(0)
                 .sequenceNumber(0)
                 .collectedPuzzlePieces(0)
+                .lastPingTime(System.currentTimeMillis())
                 .isSpeaking(false)
-                .isReady(true)
+                .isReady(false)
                 .build();
 
         // 방 정보 생성
@@ -80,7 +81,7 @@ public class GameRoomService {
                 .hostId(host.getPlayerId())
                 .players(new ConcurrentHashMap<>(Map.of(host.getPlayerId(), host)))
                 .currentTurn(0)
-                .totalPuzzlePieces(requestDto.getTotalPlayers() == 3 ? 10 : 13)
+                .totalPuzzlePieces(requestDto.getTotalPlayers() == 3 ? 5 : 13)
                 .currentPuzzlePieces(0)
                 .roomStatus(RoomStatus.WAITING)
                 .build();
@@ -109,6 +110,10 @@ public class GameRoomService {
         return room;
     }
 
+    public List<GameRoomDto> getAllRooms() {
+        return new ArrayList<>(gameRooms.values());
+    }
+
     /**
      * 생성된 방 sse 연결
      * @param roomId 방 id
@@ -130,7 +135,7 @@ public class GameRoomService {
             try {
                 emitter.send(SseEmitter.event()
                         .name("not-in-room")
-                        .data("방에 없습니다. 다시 입장요청하세요")
+                        .data("방에 없습니다. 다시 입장 요청하세요")
                 );
             } catch (IOException e) {
                 log.error("not-in-room 이벤트 전송 실패: roomId={}, playerId={}, error={}",
@@ -162,22 +167,16 @@ public class GameRoomService {
                 return emitter;
 
             case WAITING:
-                // 대기방 상태일 때 연결 처리
-                WaitingRoomDto waitingRoomDto = WaitingRoomDto.builder()
-                        .roomId(room.getRoomId())
-                        .roomName(room.getRoomName())
-                        .currentPlayers(room.getCurrentPlayers().get())
-                        .totalPlayers(room.getTotalPlayers())
-                        .hostId(room.getHostId())
-                        .players(new ArrayList<>(room.getPlayers().values()))
-                        .roomStatus(room.getRoomStatus())
-                        .build();
+                room.getPlayers().computeIfPresent(playerId, (id, p) -> {
+                    p.setReady(true);
+                    return p;
+                });
 
                 // 클라이언트에 초기 연결 상태 전송
                 try{
                     emitter.send(SseEmitter.event()
                             .name("connected")
-                            .data(waitingRoomDto)
+                            .data("연결완료")
                     );
                 } catch (IOException e){
                     log.error("방 상태 전송 실패: roomId={}, playerId={}, error={}", roomId, playerId, e.getMessage());
@@ -197,17 +196,19 @@ public class GameRoomService {
                 GameStateDto gameState = GameStateDto.builder()
                         .roomId(roomId)
                         .roomName(room.getRoomName())
+                        .hostId(room.getHostId())
                         .totalPlayers(room.getTotalPlayers())
                         .totalPuzzlePieces(room.getTotalPuzzlePieces())
                         .currentPuzzlePieces(room.getCurrentPuzzlePieces())
                         .currentTurn(room.getCurrentTurn())
+                        .currentPhase(room.getCurrentPhase())
                         .currentRound(room.getCurrentRound())
                         .players(new ArrayList<>(room.getPlayers().values()))
                         .build();
 
                 try {
                     emitter.send(SseEmitter.event()
-                            .name("game-state")
+                            .name("game-connected")
                             .data(gameState)
                     );
                 } catch (IOException e) {
@@ -217,8 +218,6 @@ public class GameRoomService {
 
                 if (isReconnecting) {
                     gameSseService.sendRoomEventToOthers(roomId, "player-reconnected", room.getPlayers().get(playerId), playerId);
-                } else {
-                    gameSseService.sendRoomEventToOthers(roomId, "player-joined", room.getPlayers().get(playerId), playerId);
                 }
                 return emitter;
 
@@ -272,7 +271,8 @@ public class GameRoomService {
                 .usageTime(0)
                 .surveyScore(joinRoomRequestDto.getSurveyScore())
                 .isSpeaking(false)
-                .isReady(true)
+                .isReady(false)
+                .lastPingTime(System.currentTimeMillis())
                 .build();
 
         // 플레이어 리스트 업데이트에 동기화 적용
@@ -379,6 +379,17 @@ public class GameRoomService {
 
         log.info("게임이 종료되었습니다: roomId={}", roomId);
 
+    }
+
+    public void updatePingTime(String roomId, Long playerId) {
+        GameRoomDto room = gameRooms.get(roomId);
+        PlayerDto player = room.getPlayers().get(playerId);
+
+        if (player == null) {
+            throw new GameRoomException("플레이어가 방에 없음", HttpStatus.NOT_FOUND);
+        }
+
+        player.setLastPingTime(System.currentTimeMillis());
     }
 
     /**

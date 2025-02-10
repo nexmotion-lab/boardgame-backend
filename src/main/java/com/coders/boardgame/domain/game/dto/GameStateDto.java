@@ -1,5 +1,6 @@
 package com.coders.boardgame.domain.game.dto;
 
+import com.coders.boardgame.domain.game.enums.GamePhase;
 import lombok.Builder;
 import lombok.Data;
 
@@ -17,4 +18,5 @@ public class GameStateDto {
     private int currentRound;
     private Long hostId;
     private List<PlayerDto> players;
+    private GamePhase currentPhase;
 }

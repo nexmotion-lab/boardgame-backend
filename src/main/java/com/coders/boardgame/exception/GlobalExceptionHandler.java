@@ -2,10 +2,12 @@ package com.coders.boardgame.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.security.core.AuthenticationException;
 
@@ -17,8 +19,16 @@ import java.net.URI;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ProblemDetail> handleAllExceptions(Exception ex, WebRequest request) {
-        log.error("Unhandled exception: {}", ex.getMessage(), ex);
+    public ResponseEntity<?> handleAllExceptions(Exception ex, WebRequest request) {
+        log.warn("다루지 않는 에러: {}", ex.getMessage(), ex);
+
+        // SSE 요청인 경우 간단한 메시지 반환 (또는 빈 응답)
+        if (isSseRequest(request)) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body("SSE 연결 오류");
+        }
 
         ProblemDetail problemDetail = createProblemDetail(
                 "Internal Server Error",
@@ -62,8 +72,30 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(problemDetail, HttpStatus.UNAUTHORIZED);
     }
 
+    /**
+     * RestClient 관련 에러 핸들러
+     * @param ex
+     * @param request
+     * @return
+     */
+    @ExceptionHandler(RestClientException.class)
+    public ResponseEntity<ProblemDetail> handleRestClientException(RestClientException ex, WebRequest request) {
+        log.error("외부 API 통신 중 에러 발생: {}", ex.getMessage(), ex);
+
+        ProblemDetail problemDetail = createProblemDetail(
+                "External API Communication Error",
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "외부 API 통신 중 오류가 발생했습니다.",
+                "503",
+                request
+        );
+
+        return new ResponseEntity<>(problemDetail, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
     @ExceptionHandler(GameRoomException.class)
     public ResponseEntity<String> handleGameRoomException(GameRoomException ex) {
+
         return ResponseEntity.status(ex.getStatus()).body(ex.getMessage());
     }
 
@@ -76,6 +108,16 @@ public class GlobalExceptionHandler {
         problemDetail.setTitle(title);
         problemDetail.setProperty("errorCode", errorCode);
         return problemDetail;
+    }
+
+    /**
+     * sse요청일떄,
+     * @param request
+     * @return
+     */
+    private boolean isSseRequest(WebRequest request) {
+        String acceptHeader = request.getHeader("Accept");
+        return acceptHeader != null && acceptHeader.contains("text/event-stream");
     }
 
 }

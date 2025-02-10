@@ -37,7 +37,6 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        logger.info("요청 쿠키:" + Arrays.toString(request.getCookies()));
 
         // 세션 확인
         HttpSession session = request.getSession(false);
@@ -69,7 +68,6 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        log.info("인증 절차 완료 'url: {}'. Proceeding with filter chain.", requestURI);
         filterChain.doFilter(request, response);
     }
 }
