@@ -36,7 +36,7 @@ public class SchoolService {
         List<Map<String, Object>> filteredDocuments = filterSchools(documents, query);
 
         // 필요한 정보만 가져오기
-        return mapToSchoolInfoDtos(filteredDocuments);
+        return mapToSchoolInfoDto(filteredDocuments);
     }
 
     // 학교 데이터 불러오는 함수
@@ -68,7 +68,9 @@ public class SchoolService {
 
             allDocuments.addAll(documents);
 
-            Optional<Map<String, Object>> meta = Optional.ofNullable((Map<String, Object>) response.get("meta"));
+            Optional<Map<String, Object>> meta = Optional.ofNullable(response)
+                    .map(resp -> objectMapper.convertValue(resp.get("meta"), new TypeReference<Map<String, Object>>() {}));
+
             if (meta.isPresent() && Boolean.TRUE.equals(meta.get().get("is_end"))) {
                 break;
             }
@@ -99,7 +101,7 @@ public class SchoolService {
                 .collect(Collectors.toList());
     }
 
-// 주어진 필드에서 모든 검색어 부분이 일치하는지 확인하는 보조 메서드
+    // 주어진 필드에서 모든 검색어 부분이 일치하는지 확인하는 보조 메서드
     private boolean isMatchingAnyField(String[] queryParts, String... fields) {
         for (String part : queryParts) {
             boolean partFoundInAnyField = false;
@@ -115,7 +117,7 @@ public class SchoolService {
         }
         return true;
     }
-    private List<SchoolInfoDto> mapToSchoolInfoDtos(List<Map<String, Object>> documents) {
+    private List<SchoolInfoDto> mapToSchoolInfoDto(List<Map<String, Object>> documents) {
         return documents.stream()
                 .map(document -> {
                     SchoolInfoDto schoolInfo = new SchoolInfoDto();

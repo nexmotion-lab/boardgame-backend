@@ -1,5 +1,6 @@
 package com.coders.boardgame.domain.game.dto;
 
+import com.coders.boardgame.domain.game.enums.GamePhase;
 import com.coders.boardgame.domain.game.enums.RoomStatus;
 import lombok.*;
 
@@ -32,5 +33,7 @@ public class GameRoomDto {
     private boolean isTextCardAssigned = false;
     private boolean hasReVoted = false;
 
+    @Builder.Default
+    private GamePhase currentPhase = GamePhase.NONE;
 
 }

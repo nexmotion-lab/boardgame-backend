@@ -201,6 +201,7 @@ public class GameRoomService {
                         .totalPuzzlePieces(room.getTotalPuzzlePieces())
                         .currentPuzzlePieces(room.getCurrentPuzzlePieces())
                         .currentTurn(room.getCurrentTurn())
+                        .currentPhase(room.getCurrentPhase())
                         .currentRound(room.getCurrentRound())
                         .players(new ArrayList<>(room.getPlayers().values()))
                         .build();
