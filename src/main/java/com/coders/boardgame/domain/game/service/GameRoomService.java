@@ -83,6 +83,8 @@ public class GameRoomService {
                 .currentTurn(0)
                 .totalPuzzlePieces(requestDto.getTotalPlayers() == 3 ? 5 : 13)
                 .currentPuzzlePieces(0)
+                .assignedPictureCardId(0)
+                .assignedTextCardId(0)
                 .roomStatus(RoomStatus.WAITING)
                 .build();
 
@@ -126,12 +128,12 @@ public class GameRoomService {
 
         log.info("커넥 시작");
 
+        PlayerDto player;
         SseEmitter emitter;
         boolean isReconnecting;
         if (!isInRoom) {
             // 방에 없는 사용자
             emitter = new SseEmitter(3000L);
-            isReconnecting = false;
             try {
                 emitter.send(SseEmitter.event()
                         .name("not-in-room")
@@ -145,6 +147,7 @@ public class GameRoomService {
             emitter.complete();
             return emitter;
         } else {
+            player = room.getPlayers().get(playerId);
             // 게임 SSE 서비스에서 연결 시도 및 재연결 여부 확인
             ConnectionResult connectionResult = gameSseService.connectToRoom(roomId, playerId);
             emitter = connectionResult.emitter();
@@ -167,6 +170,8 @@ public class GameRoomService {
                 return emitter;
 
             case WAITING:
+
+                log.info("게임 상태 WAITING일 때, 'connected' sse 응답 준비");
                 room.getPlayers().computeIfPresent(playerId, (id, p) -> {
                     p.setReady(true);
                     return p;
@@ -183,11 +188,13 @@ public class GameRoomService {
                     emitter.completeWithError(e);
                 }
 
+                log.info("게임 상태 WAITING일 때, 'connected' sse 응답 완료");
+
                 // 방에 연결을 완료했다고 자신을 제외한 모든인원들한테 방상태를 보냄
                 if(isReconnecting){
-                    gameSseService.sendRoomEventToOthers(roomId, "player-reconnected", room.getPlayers().get(playerId), playerId);
+                    gameSseService.sendRoomEventToOthers(roomId, "player-reconnected", player, playerId);
                 } else {
-                    gameSseService.sendRoomEventToOthers(roomId, "player-joined", room.getPlayers().get(playerId), playerId);
+                    gameSseService.sendRoomEventToOthers(roomId, "player-joined", player, playerId);
                 }
                 return emitter;
 
@@ -217,7 +224,7 @@ public class GameRoomService {
                 }
 
                 if (isReconnecting) {
-                    gameSseService.sendRoomEventToOthers(roomId, "player-reconnected", room.getPlayers().get(playerId), playerId);
+                    gameSseService.sendRoomEventToOthers(roomId, "player-reconnected", player, playerId);
                 }
                 return emitter;
 
@@ -328,7 +335,7 @@ public class GameRoomService {
             }
             // 방 상태 최신화 전송
             if (currentPlayers > 0) {
-                gameSseService.sendRoomEvent(room.getRoomId(), "player-left", playerId);
+                gameSseService.sendRoomEvent(roomId, "player-left", playerId);
             } else {
                 deleteRoom(roomId); // 방에 아무도 없으면 삭제
             }
@@ -341,6 +348,27 @@ public class GameRoomService {
         // SSE 연결 해제
     }
 
+    /**
+     * 플레이어의 준비 상태 취소
+     * @param roomId
+     * @param playerId
+     */
+    public void cancelPlayerReadyStatus(String roomId, Long playerId) {
+        GameRoomDto room = gameRooms.get(roomId);
+        PlayerDto player = room.getPlayers().get(playerId);
+        if (player == null) {
+            throw new GameRoomException("해당 플레이어가 존재하지 않습니다.", HttpStatus.NOT_FOUND);
+        }
+
+        player.setReady(false);
+
+        gameSseService.sendRoomEventToOthers(roomId, "player-ready-canceled", player, playerId);
+    }
+
+    /**
+     * 호스트 재부여 여부 확인 함수
+     * @param roomId
+     */
     public void reassignHostIfNeed(String roomId){
         GameRoomDto room = gameRooms.get(roomId);
         if (room == null) return;
@@ -367,7 +395,7 @@ public class GameRoomService {
 
         Map<String, String> eventData = Map.of(
                 "reason", reason,
-                "data", "게임이 리셋되어 대기방으로 이동 필요"
+                "data", "게임이 초기화되어 대기방으로 이동합니다."
         );
 
         // 모든 플레이어에게 게임 종료 이벤트 전송
@@ -381,6 +409,11 @@ public class GameRoomService {
 
     }
 
+    /**
+     * ping/pong기법에 사용자의 ping타임 필드 업데이트 함수
+     * @param roomId
+     * @param playerId
+     */
     public void updatePingTime(String roomId, Long playerId) {
         GameRoomDto room = gameRooms.get(roomId);
         PlayerDto player = room.getPlayers().get(playerId);

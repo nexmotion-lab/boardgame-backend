@@ -19,4 +19,6 @@ public class GameStateDto {
     private Long hostId;
     private List<PlayerDto> players;
     private GamePhase currentPhase;
+    private int assignedPictureCardId;
+    private int assignedTextCardId;
 }

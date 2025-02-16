@@ -2,6 +2,7 @@ package com.coders.boardgame.domain.game.service;
 
 import com.coders.boardgame.domain.game.dto.ConnectionResult;
 import com.coders.boardgame.domain.game.event.PlayerDisconnectedEvent;
+import com.coders.boardgame.domain.game.event.PlayerReadyCanceledEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -42,11 +43,15 @@ public class GameSseService {
         }
 
         SseEmitter emitter = new SseEmitter(SSE_SESSION_TIMEOUT); // 타임아웃 2시간
+        log.info("재연결 {} , emitter 해쉬코드 {}", isReconnecting,emitter.hashCode());
         roomEmitters.put(playerId, emitter);
 
-        emitter.onCompletion(() -> handleDisconnection(roomId, "completion", playerId, false));
-        emitter.onTimeout(() -> handleDisconnection(roomId, "timeout", playerId, true));
-        emitter.onError(e -> {handleDisconnection(roomId, "error", playerId, true);
+        // 현재 emitter 인스턴스를 final 변수에 캡쳐
+        final SseEmitter currentEmitter = emitter;
+
+        emitter.onCompletion(() -> handleDisconnection(roomId, "completion", playerId, false, currentEmitter));
+        emitter.onTimeout(() -> handleDisconnection(roomId, "timeout", playerId, true, currentEmitter));
+        emitter.onError(e -> {handleDisconnection(roomId, "error", playerId, true, currentEmitter);
             log.error(e.getMessage());
         });
 
@@ -148,26 +153,45 @@ public class GameSseService {
      * @param playerId
      */
     public void disconnectPlayer(String roomId, String reason, Long playerId, boolean isUnexpected){
-        handleDisconnection(roomId, reason, playerId, isUnexpected); // 의도적인 연결 종료
+        handleDisconnection(roomId, reason, playerId, isUnexpected, null); // 의도적인 연결 종료
     }
 
     /**
      * SSE 연결 종료, 타임아웃, 오류 처리
-     * @param roomId 방 ID
+     *
+     * @param roomId   방 ID
      * @param playerId 플레이어 ID
-     * @param reason 종료 이유
+     * @param reason   종료 이유
+     * @param isUnexpected 의도적 연결 끊김인지
+     * @param emitter 끊으려는 emitter
      */
-    private void handleDisconnection(String roomId, String reason, Long playerId, boolean isUnexpected) {
+    private void handleDisconnection(String roomId, String reason, Long playerId, boolean isUnexpected, SseEmitter emitter) {
+
+        log.warn("handleDisconnection debug stacktrace", new Throwable("debug stack for handleDisconnection"));
+
         Map<Long, SseEmitter> roomEmitters = sseEmitters.get(roomId);
-        if (roomEmitters != null) {
-            SseEmitter emitter = roomEmitters.remove(playerId);
-            if (emitter!= null){
-                emitter.complete(); // 연결 종료
+        if (roomEmitters == null) {
+            log.info("roomId: {} 에서 에미터들이 존재 하지 않습니다.", roomId);
+            return;
+        }
+
+        // emitter가 전달되었다면, 현재 등록된 emitter와 비교해서 다르면 그냥 종료
+        if (emitter != null) {
+            SseEmitter currentEmitter = roomEmitters.get(playerId);
+            if (currentEmitter != emitter) {
+                return;
             }
         }
+
+        SseEmitter removedEmitter = roomEmitters.remove(playerId);
+        if (removedEmitter != null) {
+            log.info("handleDisconnection - emitter 제거, 해쉬코드 {}", removedEmitter.hashCode());
+            removedEmitter.complete();
+        }
+
         log.info("SSE 연결 해제 {}: roomId = {}, playerId = {}", reason, roomId, playerId);
 
-        if (isUnexpected){
+        if (isUnexpected) {
             // 비의도적인 연결 끊김 시 이벤트 발행
             eventPublisher.publishEvent(new PlayerDisconnectedEvent(this, roomId, playerId, true));
         }

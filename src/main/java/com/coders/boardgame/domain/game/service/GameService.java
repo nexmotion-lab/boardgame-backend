@@ -60,6 +60,8 @@ public class GameService {
 
         // 게임 상태 초기화
         room.setCurrentTurn(1);
+        room.setAssignedPictureCardId(0);
+        room.setAssignedTextCardId(0);
         room.setCurrentPuzzlePieces(0);
         room.setCurrentRound(1);
 
@@ -92,6 +94,8 @@ public class GameService {
                 .currentTurn(room.getCurrentTurn())
                 .currentRound(room.getCurrentRound())
                 .currentPhase(room.getCurrentPhase())
+                .assignedPictureCardId(room.getAssignedPictureCardId())
+                .assignedTextCardId(room.getAssignedTextCardId())
                 .players(new ArrayList<>(room.getPlayers().values()))
                 .build();
 
@@ -211,17 +215,29 @@ public class GameService {
 
         GameRoomDto room = gameRoomService.getRoom(roomId);
 
+        int assignedCardId;
 
         // 카드 상태 업데이트
         if ("picture".equals(cardType)) {
+            if (room.isPictureCardAssigned()) {
+                throw new GameRoomException("이미 그림카드가 부여되었습니다.", HttpStatus.CONFLICT);
+            }
+
             room.setPictureCardAssigned(true);
+            assignedCardId = ThreadLocalRandom.current().nextInt(1, maxId + 1);
+            room.setAssignedPictureCardId(assignedCardId);
         } else if ("text".equals(cardType)) {
+            if (room.isTextCardAssigned()) {
+                throw new GameRoomException("이미 글자 카드가 부여되었습니다.", HttpStatus.CONFLICT);
+            }
+
             room.setTextCardAssigned(true);
+            assignedCardId = ThreadLocalRandom.current().nextInt(1, maxId + 1);
+            room.setAssignedTextCardId(assignedCardId);
         } else {
             throw new GameRoomException("잘못된 카드 타입입니다.", HttpStatus.FORBIDDEN);
         }
 
-        int assignedCardId = ThreadLocalRandom.current().nextInt(1, maxId + 1);
 
         // 이벤트 데이터 생성
         Map<String, Object> eventData = Map.of(
@@ -299,6 +315,8 @@ public class GameService {
         room.setCurrentRound(0);
         room.setCurrentTurn(0);
         room.setCurrentPhase(GamePhase.NONE);
+        room.setTextCardAssigned(false);
+        room.setPictureCardAssigned(false);
         room.setCurrentPuzzlePieces(0);
         room.setHasReVoted(false);
 

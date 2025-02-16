@@ -29,6 +29,8 @@ public class GameRoomDto {
     private int currentPuzzlePieces; // 현재 획득한 퍼즐 조각 개수
     private int currentRound;
     private RoomStatus roomStatus; // 방상태
+    private int assignedPictureCardId;
+    private int assignedTextCardId;
     private boolean isPictureCardAssigned = false;
     private boolean isTextCardAssigned = false;
     private boolean hasReVoted = false;
