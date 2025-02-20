@@ -38,9 +38,9 @@ public class SecurityConfig {
         };
 
         http
-                .requiresChannel(channel -> channel
-                        .anyRequest().requiresSecure() // 모든 요청을 HTTPS로 강제 리다이렉트
-                )
+//                .requiresChannel(channel -> channel
+//                        .anyRequest().requiresSecure() // 모든 요청을 HTTPS로 강제 리다이렉트
+//                )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // CORS 설정
                 .csrf(AbstractHttpConfigurer::disable)                              //  CSRF 보호 비활성화 (API 사용 시 보통 비활성화)
                 .authorizeHttpRequests(authorize -> authorize

@@ -167,8 +167,6 @@ public class GameSseService {
      */
     private void handleDisconnection(String roomId, String reason, Long playerId, boolean isUnexpected, SseEmitter emitter) {
 
-        log.warn("handleDisconnection debug stacktrace", new Throwable("debug stack for handleDisconnection"));
-
         Map<Long, SseEmitter> roomEmitters = sseEmitters.get(roomId);
         if (roomEmitters == null) {
             log.info("roomId: {} 에서 에미터들이 존재 하지 않습니다.", roomId);

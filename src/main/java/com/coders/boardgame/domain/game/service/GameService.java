@@ -130,8 +130,7 @@ public class GameService {
             List<PlayerDto> sortedPlayers = new ArrayList<>(room.getPlayers().values());
             sortedPlayers.sort(Comparator.comparingInt(PlayerDto::getUsageTime)
                     .thenComparing(Comparator.comparingInt(PlayerDto::getSurveyScore).reversed())
-                    .thenComparing(p -> ThreadLocalRandom.current().nextInt()))
-            ;
+                    .thenComparing(p -> ThreadLocalRandom.current().nextInt()));
 
             // 순번 할당
             int[] index = {1};
@@ -315,11 +314,12 @@ public class GameService {
         room.setCurrentRound(0);
         room.setCurrentTurn(0);
         room.setCurrentPhase(GamePhase.NONE);
+        room.setAssignedPictureCardId(0);
+        room.setAssignedTextCardId(0);
         room.setTextCardAssigned(false);
         room.setPictureCardAssigned(false);
         room.setCurrentPuzzlePieces(0);
         room.setHasReVoted(false);
-
 
         // 플레이어 상태 초기화
         room.getPlayers().values().forEach(this::resetPlayerState);
@@ -563,6 +563,9 @@ public class GameService {
         room.setCurrentRound(0);
         room.setTextCardAssigned(false);
         room.setPictureCardAssigned(false);
+        room.setAssignedTextCardId(0);
+        room.setAssignedPictureCardId(0);
+
 
         // 플레이어 상태 초기화
         room.getPlayers().values().forEach(p -> {

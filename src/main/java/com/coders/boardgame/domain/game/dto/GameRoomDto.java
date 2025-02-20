@@ -34,6 +34,7 @@ public class GameRoomDto {
     private boolean isPictureCardAssigned = false;
     private boolean isTextCardAssigned = false;
     private boolean hasReVoted = false;
+    private Long[] seats;
 
     @Builder.Default
     private GamePhase currentPhase = GamePhase.NONE;

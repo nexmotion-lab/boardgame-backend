@@ -15,5 +15,6 @@ public class PlayerDto {
     private int usageTime; // 스마트폰 이용시간(분)
     private int surveyScore; // 이용습관 진단지 점수
     private boolean isReady; // 준비완료 했는지 확인
+    private int seatIndex; // 자리 번호
     private long lastPingTime; // 마지막 ping 받은 시각 (밀리초)
 }
