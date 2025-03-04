@@ -23,43 +23,28 @@ public class GameEventListener {
      */
     @EventListener
     public void handlePlayerDisconnected(PlayerDisconnectedEvent event){
-
         // 의도적으로 끊김이면 여기서 처리할 필요없이 return
         if (!event.isUnexpected()) {
             return;
         }
-
-        String roomId = event.getRoomId();
-        Long playerId = event.getPlayerId();
-
-        GameRoomDto room;
-        // 이미 방이 삭제된 경우에 대해서
-        try {
-            room = gameRoomService.getRoom(roomId);
-        } catch (GameRoomException e){
-            log.warn("이미 방이 삭제되었거나 존재하지 않습니다. {}", e.getMessage());
-            return;
-        }
-
-        gameRoomService.leaveRoom(roomId, playerId, false);
-
+        gameRoomService.leaveRoom(event.getRoomId(), event.getPlayerId(), false);
     }
+
+    /**
+     * 게임이 끝났다는 이벤트를 발생 시, 게임 상태 초기화
+     * @param event
+     */
 
     @EventListener
     public void handleGameEnded(GameEndedEvent event){
         String roomId = event.getRoomId();
-        log.info("GameEndedEvent 수신: roomId={}", roomId);
-
-        // 이미 방이 삭제된 경우에 대해서
-        try {
-            GameRoomDto room = gameRoomService.getRoom(roomId);
-        } catch (GameRoomException e){
-            log.warn("이미 방이 삭제되었거나 존재하지 않습니다. {}", e.getMessage());
-            return;
-        }
-
         // 게임 상태 초기화 및 리셋
         gameService.resetGame(roomId);
 
+    }
+
+    @EventListener
+    public void handlePlayerReadyCanceled(PlayerReadyCanceledEvent event) {
+        gameRoomService.cancelPlayerReadyStatus(event.getRoomId(), event.getPlayerId());
     }
 }

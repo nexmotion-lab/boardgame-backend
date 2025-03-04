@@ -60,6 +60,8 @@ public class GameService {
 
         // 게임 상태 초기화
         room.setCurrentTurn(1);
+        room.setAssignedPictureCardId(0);
+        room.setAssignedTextCardId(0);
         room.setCurrentPuzzlePieces(0);
         room.setCurrentRound(1);
 
@@ -92,6 +94,8 @@ public class GameService {
                 .currentTurn(room.getCurrentTurn())
                 .currentRound(room.getCurrentRound())
                 .currentPhase(room.getCurrentPhase())
+                .assignedPictureCardId(room.getAssignedPictureCardId())
+                .assignedTextCardId(room.getAssignedTextCardId())
                 .players(new ArrayList<>(room.getPlayers().values()))
                 .build();
 
@@ -126,8 +130,7 @@ public class GameService {
             List<PlayerDto> sortedPlayers = new ArrayList<>(room.getPlayers().values());
             sortedPlayers.sort(Comparator.comparingInt(PlayerDto::getUsageTime)
                     .thenComparing(Comparator.comparingInt(PlayerDto::getSurveyScore).reversed())
-                    .thenComparing(p -> ThreadLocalRandom.current().nextInt()))
-            ;
+                    .thenComparing(p -> ThreadLocalRandom.current().nextInt()));
 
             // 순번 할당
             int[] index = {1};
@@ -211,17 +214,29 @@ public class GameService {
 
         GameRoomDto room = gameRoomService.getRoom(roomId);
 
+        int assignedCardId;
 
         // 카드 상태 업데이트
         if ("picture".equals(cardType)) {
+            if (room.isPictureCardAssigned()) {
+                throw new GameRoomException("이미 그림카드가 부여되었습니다.", HttpStatus.CONFLICT);
+            }
+
             room.setPictureCardAssigned(true);
+            assignedCardId = ThreadLocalRandom.current().nextInt(1, maxId + 1);
+            room.setAssignedPictureCardId(assignedCardId);
         } else if ("text".equals(cardType)) {
+            if (room.isTextCardAssigned()) {
+                throw new GameRoomException("이미 글자 카드가 부여되었습니다.", HttpStatus.CONFLICT);
+            }
+
             room.setTextCardAssigned(true);
+            assignedCardId = ThreadLocalRandom.current().nextInt(1, maxId + 1);
+            room.setAssignedTextCardId(assignedCardId);
         } else {
             throw new GameRoomException("잘못된 카드 타입입니다.", HttpStatus.FORBIDDEN);
         }
 
-        int assignedCardId = ThreadLocalRandom.current().nextInt(1, maxId + 1);
 
         // 이벤트 데이터 생성
         Map<String, Object> eventData = Map.of(
@@ -299,9 +314,12 @@ public class GameService {
         room.setCurrentRound(0);
         room.setCurrentTurn(0);
         room.setCurrentPhase(GamePhase.NONE);
+        room.setAssignedPictureCardId(0);
+        room.setAssignedTextCardId(0);
+        room.setTextCardAssigned(false);
+        room.setPictureCardAssigned(false);
         room.setCurrentPuzzlePieces(0);
         room.setHasReVoted(false);
-
 
         // 플레이어 상태 초기화
         room.getPlayers().values().forEach(this::resetPlayerState);
@@ -524,6 +542,7 @@ public class GameService {
                 .map(player -> {
                     Map<String, Object> map = new HashMap<>();
                     map.put("playerId", player.getPlayerId());
+                    map.put("avatarId", player.getAvatarId());
                     map.put("playerName", player.getPlayerInfo().getName());
                     map.put("puzzlePieces", player.getCollectedPuzzlePieces());
                     return map;
@@ -545,6 +564,9 @@ public class GameService {
         room.setCurrentRound(0);
         room.setTextCardAssigned(false);
         room.setPictureCardAssigned(false);
+        room.setAssignedTextCardId(0);
+        room.setAssignedPictureCardId(0);
+
 
         // 플레이어 상태 초기화
         room.getPlayers().values().forEach(p -> {

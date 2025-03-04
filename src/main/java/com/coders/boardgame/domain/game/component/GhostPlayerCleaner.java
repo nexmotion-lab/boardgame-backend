@@ -20,7 +20,7 @@ public class GhostPlayerCleaner {
 
     private final GameRoomService gameRoomService;
 
-    private static final long GHOST_THRESHOLD = 120_000; // 2분
+    private static final long GHOST_THRESHOLD = 180_000; // 3분
 
     @Scheduled(fixedDelay = 30_000)
     public void removeGhostUser() {

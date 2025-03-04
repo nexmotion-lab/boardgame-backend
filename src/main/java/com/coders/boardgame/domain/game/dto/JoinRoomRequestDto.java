@@ -11,4 +11,5 @@ import lombok.NoArgsConstructor;
 public class JoinRoomRequestDto {
     private UserDto userInfo; // 사용자 정보
     private int surveyScore; // 설문지 정보
+    private int avatarMaxId; // 가지고 있는 아바타 아이콘 maxId
 }

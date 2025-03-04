@@ -7,7 +7,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -33,9 +33,8 @@ kakao:
 
 frontend:
   url: "https://suhat.kr" # 프론트엔드 URL
-#  url: "http://localhost:8100" # 프론트엔드 URL
 
 logging:
   level:
-#    org.springframework.web: DEBUG
+    org.springframework.web: DEBUG
     org.springframework.security: DEBUG

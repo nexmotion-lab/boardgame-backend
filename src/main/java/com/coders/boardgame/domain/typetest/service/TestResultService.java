@@ -32,7 +32,7 @@ public class TestResultService {
         SuhatType suhatType = suhatTypeRepository.findByServiceTypeAndScoreRange(
                 requestDto.getServiceTypeId(),
                 requestDto.getTotalScore()
-        ).orElseThrow(() -> new IllegalArgumentException("점수 범위에 해당하는 suHatType을 찾을 수 없습니다."));
+        ).orElseThrow(() -> new IllegalArgumentException("점수 범위에 해당하는 SUHAT타입을 찾을 수 없습니다."));
 
         // 2. TestResult 저장
         TestResult testResult = TestResult.builder()

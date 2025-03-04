@@ -24,6 +24,11 @@ public class GameRoomController {
     private final GameRoomService gameRoomService;
     private final SessionService sessionService;
 
+    @RequestMapping("/{roomId}/canRqInPause")
+    public ResponseEntity<?> canRqInPause(@PathVariable String roomId) {
+        return ResponseEntity.ok("pause상태일때 api 가능");
+    }
+
     /**
      * 방 생성 API
      */
@@ -45,16 +50,8 @@ public class GameRoomController {
     @GetMapping("/{roomId}")
     public ResponseEntity<WaitingRoomDto> getGameRoom(@PathVariable String roomId) {
         GameRoomDto room = gameRoomService.getRoom(roomId);
-        WaitingRoomDto roomDto = WaitingRoomDto.builder()
-                .roomId(roomId)
-                .roomName(room.getRoomName())
-                .currentPlayers(room.getCurrentPlayers().get())
-                .totalPlayers(room.getTotalPlayers())
-                .hostId(room.getHostId())
-                .players(new ArrayList<>(room.getPlayers().values()))
-                .roomStatus(room.getRoomStatus())
-                .build();
-        return ResponseEntity.ok(roomDto);
+        WaitingRoomDto waitingRoomDto = gameRoomService.buildWaitingRoomDto(room);
+        return ResponseEntity.ok(waitingRoomDto);
     }
 
     /**
