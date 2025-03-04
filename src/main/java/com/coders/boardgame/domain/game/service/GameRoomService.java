@@ -14,6 +14,7 @@
     import java.io.IOException;
     import java.util.*;
     import java.util.concurrent.ConcurrentHashMap;
+    import java.util.concurrent.ThreadLocalRandom;
     import java.util.concurrent.atomic.AtomicInteger;
 
     /**
@@ -62,6 +63,7 @@
             // 방장 생성
             PlayerDto host = PlayerDto.builder()
                     .playerId(userId)
+                    .avatarId(ThreadLocalRandom.current().nextInt(1, requestDto.getAvatarMaxId() + 1))
                     .playerInfo(requestDto.getHostInfo())
                     .surveyScore(requestDto.getSurveyScore())
                     .usageTime(0)
@@ -281,6 +283,7 @@
             // 플레이어 생성
             PlayerDto player = PlayerDto.builder()
                     .playerId(userId)
+                    .avatarId(ThreadLocalRandom.current().nextInt(1, joinRoomRequestDto.getAvatarMaxId() + 1))
                     .playerInfo(joinRoomRequestDto.getUserInfo())
                     .sequenceNumber(0)
                     .collectedPuzzlePieces(0)
@@ -359,28 +362,27 @@
                 gameSseService.disconnectPlayer(roomId, "player-left", playerId, false);
             }
 
+            if (currentPlayersAfter <= 0) {
+                deleteRoom(roomId);
+                return;
+            }
+
             if (room.getRoomStatus() == RoomStatus.IN_GAME) {
                 InterruptGameAndMoveToWaitingRoom(roomId, removedPlayer);
-
             } else if (room.getRoomStatus() == RoomStatus.WAITING) {
                 // 방장이 나간 경우 새로운 방장 무작위로 선정
-                if (room.getHostId().equals(playerId) && currentPlayersAfter > 0) {
+                if (room.getHostId().equals(playerId)) {
                     assignNewHost(room, true);
                 }
                 // 방 상태 최신화 전송
-                if (currentPlayersAfter > 0) {
-                    log.info("현재 플레이어 나열: {}", new ArrayList<>(room.getPlayers().values()));
-                    gameSseService.sendRoomEvent(roomId, "player-left", playerId);
-                } else {
-                    deleteRoom(roomId); // 방에 아무도 없으면 삭제
-                }
+                log.info("현재 플레이어 나열: {}", new ArrayList<>(room.getPlayers().values()));
+                gameSseService.sendRoomEvent(roomId, "player-left", playerId);
             } else if (room.getRoomStatus() == RoomStatus.ENDED) {
-                if (currentPlayersAfter <=0){
-                    deleteRoom(roomId);
+                // 방장이 나간 경우 새로운 방장 무작위로 선정
+                if (room.getHostId().equals(playerId)) {
+                    assignNewHost(room, false);
                 }
             }
-
-            // SSE 연결 해제
         }
 
         /**

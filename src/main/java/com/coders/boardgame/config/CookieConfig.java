@@ -15,8 +15,8 @@ public class CookieConfig {
         serializer.setUseHttpOnlyCookie(true);
         serializer.setDomainName("suhat.kr");
         serializer.setSameSite("None"); // CORS 요청 허용
-        serializer.setUseSecureCookie(false);
-//        serializer.setUseSecureCookie(true);
+//        serializer.setUseSecureCookie(false);
+        serializer.setUseSecureCookie(true);
         serializer.setCookiePath("/");
         return serializer;
     }

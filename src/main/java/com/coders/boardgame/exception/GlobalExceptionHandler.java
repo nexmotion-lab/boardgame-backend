@@ -20,14 +20,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleAllExceptions(Exception ex, WebRequest request) {
-        log.warn("다루지 않는 에러: {}", ex.getMessage(), ex);
 
         // SSE 요청인 경우 간단한 메시지 반환 (또는 빈 응답)
         if (isSseRequest(request)) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .contentType(MediaType.TEXT_PLAIN)
-                    .body("SSE 연결 오류");
+            log.debug("SSE 통신 중 연결 끊김 발생: {}", ex.getMessage());
+            // “오류”라기보다는 자연스러운 끊김으로 보고 적절한 응답 or 무응답
+            return ResponseEntity.noContent().build();
         }
 
         ProblemDetail problemDetail = createProblemDetail(

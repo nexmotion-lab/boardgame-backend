@@ -13,4 +13,5 @@ public class CreateRoomRequestDto {
     private int totalPlayers; // 최대 플레이어 수 (3명 또는 4명)
     private UserDto hostInfo; // 방장 정보 포함
     private int surveyScore; // 방장이 이용습괍 진단지 점수
+    private int avatarMaxId; // 보유하고 있는 아바타 이이콘의 maxId
 }

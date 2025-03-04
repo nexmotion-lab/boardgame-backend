@@ -8,6 +8,7 @@ import lombok.Data;
 @Builder
 public class PlayerDto {
     private Long playerId;
+    private int avatarId;
     private UserDto playerInfo; // 사용자 정보 (name, gender, school 포함)
     private int sequenceNumber; // 게임 내 순번
     private int collectedPuzzlePieces; // 플레이어가 모은 퍼즐 조각 수

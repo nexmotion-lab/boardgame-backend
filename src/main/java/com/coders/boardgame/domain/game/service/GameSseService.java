@@ -51,8 +51,15 @@ public class GameSseService {
 
         emitter.onCompletion(() -> handleDisconnection(roomId, "completion", playerId, false, currentEmitter));
         emitter.onTimeout(() -> handleDisconnection(roomId, "timeout", playerId, true, currentEmitter));
-        emitter.onError(e -> {handleDisconnection(roomId, "error", playerId, true, currentEmitter);
-            log.error(e.getMessage());
+        emitter.onError(e -> {
+            if (e instanceof IOException) {
+                // 클라이언트 끊김
+                log.debug("SSE onError: 클라이언트 끊김, roomId={}, playerId={}, msg={}", roomId, playerId, e.getMessage());
+            } else {
+                // 정말 예상치 못한 에러라면 error 로깅
+                log.error("SSE onError 발생: {}", e.getMessage(), e);
+            }
+            handleDisconnection(roomId, "error", playerId, true, currentEmitter);
         });
 
         log.info("플레이어{} : 방과 sse 연결 성공", playerId);
@@ -78,7 +85,7 @@ public class GameSseService {
                             .data(data));
                 } catch (IOException e){
                     roomEmitters.remove(playerId);
-                    log.error("플레이어 이벤트 전송 실패: roomId={}, playerId={}, eventName={}, error={}",
+                    log.debug("플레이어 이벤트 전송 실패: roomId={}, playerId={}, eventName={}, error={}",
                             roomId, playerId, eventName, e.getMessage());
                 }
             });
@@ -104,7 +111,7 @@ public class GameSseService {
                                 .data(data));
                     } catch (IOException e) {
                         roomEmitters.remove(playerId);
-                        log.error("플레이어 이벤트 전송 실패: roomId={}, playerId={}, eventName={}, error={}",
+                        log.debug("플레이어 이벤트 전송 실패: roomId={}, playerId={}, eventName={}, error={}",
                                 roomId, playerId, eventName, e.getMessage());
                     }
                 }
@@ -130,7 +137,7 @@ public class GameSseService {
                             .data(data));
                 } catch (IOException e){
                     roomEmitters.remove(playerId);
-                    log.error("특정 사용자 이벤트 전송 실패: roomId={}, playerId={}, eventName={}, error={}",
+                    log.debug("특정 사용자 이벤트 전송 실패: roomId={}, playerId={}, eventName={}, error={}",
                             roomId, playerId, eventName, e.getMessage());                }
             }
         }
@@ -169,7 +176,6 @@ public class GameSseService {
 
         Map<Long, SseEmitter> roomEmitters = sseEmitters.get(roomId);
         if (roomEmitters == null) {
-            log.info("roomId: {} 에서 에미터들이 존재 하지 않습니다.", roomId);
             return;
         }
 

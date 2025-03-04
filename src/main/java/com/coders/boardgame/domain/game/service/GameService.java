@@ -542,6 +542,7 @@ public class GameService {
                 .map(player -> {
                     Map<String, Object> map = new HashMap<>();
                     map.put("playerId", player.getPlayerId());
+                    map.put("avatarId", player.getAvatarId());
                     map.put("playerName", player.getPlayerInfo().getName());
                     map.put("puzzlePieces", player.getCollectedPuzzlePieces());
                     return map;
