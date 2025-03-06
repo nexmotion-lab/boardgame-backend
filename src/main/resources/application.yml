@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/boardgame
-    username: root
-    password: 1111
+    url: jdbc:mysql://localhost:3306/suhat
+    username: springuser
+    password: Coders1111!
     driver-class-name: com.mysql.cj.jdbc.Driver # 추가된 부분
   jpa:
     hibernate:
@@ -36,5 +36,5 @@ frontend:
 
 logging:
   level:
-    org.springframework.web: DEBUG
-    org.springframework.security: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO

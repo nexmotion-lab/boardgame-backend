@@ -24,11 +24,6 @@ public class GameRoomController {
     private final GameRoomService gameRoomService;
     private final SessionService sessionService;
 
-    @RequestMapping("/{roomId}/canRqInPause")
-    public ResponseEntity<?> canRqInPause(@PathVariable String roomId) {
-        return ResponseEntity.ok("pause상태일때 api 가능");
-    }
-
     /**
      * 방 생성 API
      */

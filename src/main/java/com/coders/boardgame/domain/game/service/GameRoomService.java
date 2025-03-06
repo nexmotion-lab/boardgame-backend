@@ -135,13 +135,11 @@
 
             boolean isInRoom = room.getPlayers().containsKey(playerId);
 
-            log.info("커넥 시작");
-
             PlayerDto player;
             SseEmitter emitter;
             boolean isReconnecting;
             if (!isInRoom) {
-                log.info("방에 없습니다. ");
+                log.warn("{}가 해당 방에 없습니다.", playerId);
                 // 방에 없는 사용자
                 emitter = new SseEmitter(60000L);
                 try {
@@ -162,6 +160,7 @@
                 ConnectionResult connectionResult = gameSseService.connectToRoom(roomId, playerId);
                 emitter = connectionResult.emitter();
                 isReconnecting = connectionResult.isReconnecting();
+                log.info("{} 방과 연결", playerId);
             }
 
             // 방 상태에 따른 처리
@@ -181,7 +180,6 @@
 
                 case WAITING:
 
-                    log.info("게임 상태 WAITING일 때, 'connected' sse 응답 준비");
                     room.getPlayers().computeIfPresent(playerId, (id, p) -> {
                         p.setReady(true);
                         return p;
@@ -197,8 +195,6 @@
                         log.error("방 상태 전송 실패: roomId={}, playerId={}, error={}", roomId, playerId, e.getMessage());
                         emitter.completeWithError(e);
                     }
-
-                    log.info("게임 상태 WAITING일 때, 'connected' sse 응답 완료");
 
                     // 방에 연결을 완료했다고 자신을 제외한 모든인원들한테 방상태를 보냄
                     if(isReconnecting){
@@ -374,8 +370,6 @@
                 if (room.getHostId().equals(playerId)) {
                     assignNewHost(room, true);
                 }
-                // 방 상태 최신화 전송
-                log.info("현재 플레이어 나열: {}", new ArrayList<>(room.getPlayers().values()));
                 gameSseService.sendRoomEvent(roomId, "player-left", playerId);
             } else if (room.getRoomStatus() == RoomStatus.ENDED) {
                 // 방장이 나간 경우 새로운 방장 무작위로 선정
@@ -424,7 +418,7 @@
         public void InterruptGameAndMoveToWaitingRoom(String roomId, PlayerDto player){
             GameRoomDto room = gameRooms.get(roomId);
 
-            log.info("IN_GAME 상태에서 플레이어 {}가 나갔으므로 게임 종료 진행", player.getPlayerId());
+            log.info("IN_GAME 상태에서 플레이어 {}가 나갔으므로 방 {} 게임 종료 진행", player.getPlayerId(), roomId);
             String reason = player.getPlayerInfo().getName() + "가 나갔습니다.";
 
             // 방상태 ended로 변환
@@ -440,9 +434,6 @@
 
             // gameEvent 발행
             applicationEventPublisher.publishEvent(new GameEndedEvent(this, roomId));
-
-
-            log.info("게임이 종료되었습니다: roomId={}", roomId);
 
         }
 
