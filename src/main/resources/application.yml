@@ -12,9 +12,6 @@ spring:
       hibernate:
         format_sql: true
 
-
-
-
 server:
   ssl:
     enabled: true
@@ -25,7 +22,6 @@ server:
   servlet:
     session:
       timeout: 2h
-
 
 kakao:
   address-api-url: "https://dapi.kakao.com/v2/local/search/keyword.json"
