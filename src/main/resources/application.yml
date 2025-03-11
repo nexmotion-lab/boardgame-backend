@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/boardgame
-    username: root
-    password: 1111
+    url: jdbc:mysql://localhost:3306/suhat
+    username: springuser
+    password: Coders1111!
     driver-class-name: com.mysql.cj.jdbc.Driver # 추가된 부분
   jpa:
     hibernate:
@@ -11,9 +11,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-
-
-
 
 server:
   ssl:
@@ -26,7 +23,6 @@ server:
     session:
       timeout: 2h
 
-
 kakao:
   address-api-url: "https://dapi.kakao.com/v2/local/search/keyword.json"
   api-key: "06b148d53b401fd4eb0188baad142f45"
@@ -36,5 +32,5 @@ frontend:
 
 logging:
   level:
-    org.springframework.web: DEBUG
-    org.springframework.security: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO

@@ -43,7 +43,6 @@ public class GameSseService {
         }
 
         SseEmitter emitter = new SseEmitter(SSE_SESSION_TIMEOUT); // 타임아웃 2시간
-        log.info("재연결 {} , emitter 해쉬코드 {}", isReconnecting,emitter.hashCode());
         roomEmitters.put(playerId, emitter);
 
         // 현재 emitter 인스턴스를 final 변수에 캡쳐
@@ -61,8 +60,6 @@ public class GameSseService {
             }
             handleDisconnection(roomId, "error", playerId, true, currentEmitter);
         });
-
-        log.info("플레이어{} : 방과 sse 연결 성공", playerId);
 
         return new ConnectionResult(emitter, isReconnecting);
     }
@@ -189,7 +186,6 @@ public class GameSseService {
 
         SseEmitter removedEmitter = roomEmitters.remove(playerId);
         if (removedEmitter != null) {
-            log.info("handleDisconnection - emitter 제거, 해쉬코드 {}", removedEmitter.hashCode());
             removedEmitter.complete();
         }
 

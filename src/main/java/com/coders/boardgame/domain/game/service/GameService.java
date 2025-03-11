@@ -150,7 +150,7 @@ public class GameService {
         } else {
             // 플레이어 이름과 함께 로그 출력
             String playerName = player.getPlayerInfo().getName();
-            log.info("플레이어 '{}'가 사용 시간을 설정했습니다: roomId={}, usageTime={}분", playerName, roomId, usageTime);
+            log.debug("플레이어 '{}'가 사용 시간을 설정했습니다: roomId={}, usageTime={}분", playerName, roomId, usageTime);
         }
     }
 

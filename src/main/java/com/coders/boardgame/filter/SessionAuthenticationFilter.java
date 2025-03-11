@@ -32,7 +32,6 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
         // 예외 경로 처리
         if (Arrays.stream(excludedPaths).anyMatch(requestURI::startsWith)) {
-            log.info("Request URI '{}' is excluded from authentication.", requestURI);
             filterChain.doFilter(request, response);
             return;
         }
@@ -41,7 +40,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
         // 세션 확인
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY) == null) {
-            log.warn("Unauthenticated request to '{}'. Returning 401.", requestURI);
+            log.warn(" 인증되지 않은 요청 '{}'. Returning 401.", requestURI);
             // 인증 실패 시 SecurtiyContext 지우고
             SecurityContextHolder.clearContext();
 
