@@ -201,7 +201,7 @@
                         gameSseService.sendRoomEventToOthers(roomId, "player-reconnected", player, playerId);
                     } else {
                         gameSseService.sendRoomEventToOthers(roomId, "player-joined", player, playerId);
-                        log.info("현재 플레이어 나열: {}", new ArrayList<>(room.getPlayers().values()));
+                        log.debug("현재 플레이어 나열: {}", new ArrayList<>(room.getPlayers().values()));
                     }
                     return emitter;
 
