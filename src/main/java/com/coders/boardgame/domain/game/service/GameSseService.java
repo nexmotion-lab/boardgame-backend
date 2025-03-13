@@ -75,13 +75,14 @@ public class GameSseService {
         Map<Long, SseEmitter> roomEmitters = sseEmitters.get(roomId);
 
         if (roomEmitters != null) {
-            roomEmitters.forEach((playerId, emitter) ->{
+            roomEmitters.forEach((playerId, emitter) -> {
                 try {
                     emitter.send(SseEmitter.event()
                             .name(eventName)
                             .data(data));
                 } catch (IOException e){
-                    roomEmitters.remove(playerId);
+                    // 곧바로 handleDisconnection 호출
+                    handleDisconnection(roomId, "send-fail", playerId, true, emitter);
                     log.debug("플레이어 이벤트 전송 실패: roomId={}, playerId={}, eventName={}, error={}",
                             roomId, playerId, eventName, e.getMessage());
                 }
@@ -107,7 +108,8 @@ public class GameSseService {
                                 .name(eventName)
                                 .data(data));
                     } catch (IOException e) {
-                        roomEmitters.remove(playerId);
+                        // 곧바로 handleDisconnection 호출
+                        handleDisconnection(roomId, "send-fail", playerId, true, emitter);
                         log.debug("플레이어 이벤트 전송 실패: roomId={}, playerId={}, eventName={}, error={}",
                                 roomId, playerId, eventName, e.getMessage());
                     }
@@ -133,7 +135,8 @@ public class GameSseService {
                             .name(eventName)
                             .data(data));
                 } catch (IOException e){
-                    roomEmitters.remove(playerId);
+                    // 곧바로 handleDisconnection 호출
+                    handleDisconnection(roomId, "send-fail", playerId, true, emitter);
                     log.debug("특정 사용자 이벤트 전송 실패: roomId={}, playerId={}, eventName={}, error={}",
                             roomId, playerId, eventName, e.getMessage());                }
             }
@@ -176,12 +179,16 @@ public class GameSseService {
             return;
         }
 
-        // emitter가 전달되었다면, 현재 등록된 emitter와 비교해서 다르면 그냥 종료
-        if (emitter != null) {
-            SseEmitter currentEmitter = roomEmitters.get(playerId);
-            if (currentEmitter != emitter) {
-                return;
-            }
+        // 중복 remove 방지
+        SseEmitter currentEmitter = roomEmitters.get(playerId);
+        if (currentEmitter == null) {
+            // 이미 제거된 상태라 아무것도 안함
+            return;
+        }
+
+        // emitter가 전달되고 만약 emitter가 있을때, 현재 등록된 emitter와 비교해서 다르면 그냥 종료
+        if (emitter != null && currentEmitter != emitter) {
+            return;
         }
 
         SseEmitter removedEmitter = roomEmitters.remove(playerId);

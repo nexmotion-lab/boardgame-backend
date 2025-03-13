@@ -267,12 +267,14 @@
 
             // 플레이어가 이미 존재하는지 확인
             if (room.getPlayers().containsKey(userId)) {
-                throw new GameRoomException(userId + " 이미 방에 있습니다.", HttpStatus.FORBIDDEN);
+                // 이미 존재하는 플레이어의 정보 가져오기
+                PlayerDto existingPlayer = room.getPlayers().get(userId);
+                throw new GameRoomException(existingPlayer + "가 이미 방에 있습니다.", HttpStatus.FORBIDDEN);
             }
 
             // 현재 플레이어 수 확인
             if (room.getCurrentPlayers().get() >= room.getTotalPlayers()) {
-                throw new GameRoomException("방이 가득찼습니다: " + roomId, HttpStatus.FORBIDDEN);
+                throw new GameRoomException(roomId + " 방이 가득찼습니다 " , HttpStatus.FORBIDDEN);
             }
 
 
